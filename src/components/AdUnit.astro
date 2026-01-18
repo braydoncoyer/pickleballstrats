@@ -1,0 +1,66 @@
+---
+/**
+ * AdUnit.astro
+ *
+ * Placeholder component for ad units. Currently displays a styled placeholder.
+ * Will be replaced with actual AdSense/Mediavine code when monetization is enabled.
+ *
+ * IMPORTANT: Because Astro does full page loads (no View Transitions on article pages),
+ * ad scripts run fresh on each navigation - exactly what ad networks expect.
+ *
+ * Positions:
+ * - horizontal: After title banner (728x90 or responsive)
+ * - vertical: Sidebar ad (300x250 or 300x600)
+ * - rectangle: After content (336x280)
+ * - in-content: Injected between paragraphs via remark plugin
+ */
+
+type Props = {
+  slot?: string;
+  position?: "horizontal" | "vertical" | "rectangle" | "in-content";
+  className?: string;
+};
+
+const { slot, position = "rectangle", className = "" } = Astro.props;
+
+const positionStyles = {
+  horizontal: "w-full h-24 max-w-3xl mx-auto",
+  vertical: "w-full max-w-[300px] h-[250px] lg:h-[600px]",
+  rectangle: "w-full max-w-[336px] h-[280px] mx-auto",
+  "in-content": "w-full h-24 my-6",
+};
+---
+
+<div
+  class:list={[
+    "ad-unit",
+    "bg-muted/30 border border-dashed border-muted-foreground/30",
+    "flex items-center justify-center rounded-lg",
+    "text-muted-foreground/50 text-sm",
+    positionStyles[position],
+    className,
+  ]}
+  data-ad-slot={slot}
+  data-ad-position={position}
+  data-ad-status="placeholder"
+>
+  <div class="text-center">
+    <div class="text-xs uppercase tracking-wider mb-1">Advertisement</div>
+    <div class="text-xs opacity-60">Ad placeholder - {position}</div>
+  </div>
+</div>
+
+<!--
+  When ready to enable AdSense, replace the div above with:
+
+  <ins class="adsbygoogle"
+    style="display:block"
+    data-ad-client="ca-pub-XXXXXXXX"
+    data-ad-slot="XXXXXXXX"
+    data-ad-format="auto"
+    data-full-width-responsive="true">
+  </ins>
+  <script is:inline>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+-->

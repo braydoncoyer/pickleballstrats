@@ -1,6 +1,6 @@
 ---
 import { type CollectionEntry, getCollection } from "astro:content";
-import PostDetails from "@/layouts/PostDetails.astro";
+import PostDetailsArticle from "@/layouts/PostDetailsArticle.astro";
 import getSortedPosts from "@/utils/getSortedPosts";
 import { getPath } from "@/utils/getPath";
 
@@ -24,4 +24,4 @@ const posts = await getCollection("blog");
 const sortedPosts = getSortedPosts(posts);
 ---
 
-<PostDetails post={post} posts={sortedPosts} />
+<PostDetailsArticle post={post} posts={sortedPosts} />
