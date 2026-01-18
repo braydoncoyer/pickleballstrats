@@ -90,6 +90,7 @@ export const article = defineType({
       options: {
         list: [
           { title: "How-To", value: "how-to" },
+          { title: "Summary", value: "summary" },
           { title: "Pillar", value: "pillar" },
           { title: "Comparison", value: "comparison" },
         ],
@@ -184,6 +185,60 @@ export const article = defineType({
               title: "Caption",
             },
           ],
+        },
+        // External images (Unsplash, DALL-E, Imagen) stored as URLs
+        {
+          type: "object",
+          name: "externalImage",
+          title: "External Image",
+          fields: [
+            {
+              name: "url",
+              type: "url",
+              title: "Image URL",
+            },
+            {
+              name: "alt",
+              type: "string",
+              title: "Alternative Text",
+              description: "Important for SEO and accessibility",
+            },
+            {
+              name: "caption",
+              type: "string",
+              title: "Caption",
+            },
+            {
+              name: "source",
+              type: "string",
+              title: "Image Source",
+              options: {
+                list: [
+                  { title: "Unsplash", value: "unsplash" },
+                  { title: "DALL-E", value: "dalle" },
+                  { title: "Imagen", value: "imagen" },
+                ],
+              },
+            },
+            {
+              name: "attribution",
+              type: "string",
+              title: "Attribution",
+              description: "Attribution text (for Unsplash)",
+            },
+          ],
+          preview: {
+            select: {
+              url: "url",
+              alt: "alt",
+            },
+            prepare({ url, alt }: { url?: string; alt?: string }) {
+              return {
+                title: alt || "External Image",
+                subtitle: url ? url.substring(0, 50) + "..." : "No URL",
+              };
+            },
+          },
         },
         // Code blocks can be added later with @sanity/code-input plugin
       ],
@@ -291,8 +346,15 @@ export const article = defineType({
             list: [
               { title: "Unsplash", value: "unsplash" },
               { title: "DALL-E", value: "dalle" },
+              { title: "Imagen", value: "imagen" },
             ],
           },
+        },
+        {
+          name: "inlineImagesCount",
+          title: "Inline Images Count",
+          type: "number",
+          description: "Number of images embedded in the article content",
         },
       ],
     }),

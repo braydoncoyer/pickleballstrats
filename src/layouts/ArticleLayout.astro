@@ -12,8 +12,17 @@
  */
 import { Font } from "astro:assets";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
+import {
+  PUBLIC_ADSENSE_CLIENT_ID,
+  PUBLIC_ADSENSE_SLOT_IN_CONTENT,
+} from "astro:env/client";
 import { SITE } from "@/config";
 import "@/styles/global.css";
+
+// Check if we should show real ads
+const isDev = import.meta.env.DEV;
+const hasAdSense = Boolean(PUBLIC_ADSENSE_CLIENT_ID);
+const showRealAds = !isDev && hasAdSense;
 
 type Props = {
   title?: string;
@@ -143,7 +152,16 @@ const structuredData = {
 
     <!-- NO ClientRouter/ViewTransitions - ads need full page reloads -->
 
-    <!-- Ad placeholder - will be replaced with actual ad script -->
+    <!-- AdSense Script (Production only) -->
+    {showRealAds && (
+      <script
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUBLIC_ADSENSE_CLIENT_ID}`}
+        crossorigin="anonymous"
+      />
+    )}
+
+    <!-- Ad placeholder slot for additional ad scripts -->
     <slot name="head-ads" />
 
     <!-- Minimal inline script to prevent FOUC - sets theme immediately -->
@@ -180,13 +198,48 @@ const structuredData = {
     <script src="../scripts/theme.ts"></script>
 
     <!-- Initialize in-content ads -->
-    <script is:inline>
+    <script
+      is:inline
+      data-show-real-ads={showRealAds}
+      data-adsense-client={PUBLIC_ADSENSE_CLIENT_ID || ""}
+      data-adsense-slot={PUBLIC_ADSENSE_SLOT_IN_CONTENT || ""}
+    >
       // Initialize ad slots injected by remark plugin
-      document.querySelectorAll('.ad-slot').forEach(slot => {
-        // Placeholder: Ad initialization will go here
-        // This will be populated when AdSense is configured
-        slot.setAttribute('data-ad-initialized', 'placeholder');
-      });
+      (function() {
+        const scriptTag = document.currentScript;
+        const showRealAds = scriptTag?.dataset.showRealAds === 'true';
+        const adsenseClient = scriptTag?.dataset.adsenseClient;
+        const adsenseSlot = scriptTag?.dataset.adsenseSlot;
+
+        document.querySelectorAll('.ad-slot').forEach((slot, index) => {
+          if (showRealAds && adsenseClient && adsenseSlot) {
+            // Render real AdSense ad
+            slot.style.cssText = 'margin: 2rem 0; text-align: center;';
+
+            const ins = document.createElement('ins');
+            ins.className = 'adsbygoogle';
+            ins.style.display = 'block';
+            ins.dataset.adClient = adsenseClient;
+            ins.dataset.adSlot = adsenseSlot;
+            ins.dataset.adFormat = 'auto';
+            ins.dataset.fullWidthResponsive = 'true';
+
+            slot.appendChild(ins);
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            slot.setAttribute('data-ad-initialized', 'adsense');
+          } else {
+            // Render placeholder
+            slot.style.cssText = 'margin: 2rem 0; padding: 1.5rem 1rem; background: var(--color-muted, #f3f4f6); opacity: 0.3; border: 1px dashed var(--color-border, #d1d5db); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;';
+            slot.innerHTML = `
+              <div style="text-align: center; color: var(--color-muted-foreground, #6b7280); opacity: 0.7;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Advertisement</div>
+                <div style="font-size: 0.75rem; opacity: 0.6;">In-content ad ${index + 1}</div>
+              </div>
+            `;
+            slot.setAttribute('data-ad-initialized', 'placeholder');
+          }
+        });
+      })();
     </script>
   </body>
 </html>

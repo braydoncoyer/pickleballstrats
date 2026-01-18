@@ -50,6 +50,8 @@ Remember that all stacking movements must occur after the serve is struck, not d
 
 ## Advanced Stacking Techniques
 
+![Pickleball doubles stacking strategy: offensive and defensive player positioning on court for optimal coverage](https://cdn.sanity.io/images/gvi93s1j/production/c16e5c8d753a9a4c4a9377104a31d1983d14dfc1-1024x1024.png)
+
 ### Offensive Stacking Strategies
 
 Advanced offensive stacking focuses on creating attacking opportunities from the opening shots. Position your stronger net player to receive the majority of volleys and put-aways.
@@ -101,6 +103,8 @@ Avoid stacking on every single point, as this can become predictable and limit y
 Watch for opponent adjustments to your stacking and be prepared to counter their adaptations with different formations or abandoning stacking temporarily.
 
 ## Implementing Stacking in Your Game
+
+![Pickleball doubles players demonstrating strategic stacking technique with movement paths and positioning transitions](https://cdn.sanity.io/images/gvi93s1j/production/e58333bbd4866b169d843cd29b4a7d3e729bb40a-1024x1024.png)
 
 ### Practice Drills for Smooth Transitions
 

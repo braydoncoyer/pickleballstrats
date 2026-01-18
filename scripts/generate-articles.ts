@@ -132,13 +132,21 @@ CRITICAL: Write content that competitive pickleball players will find genuinely 
 interface QueuedTopic {
   _key: string;
   topic: string;
-  articleType: "how-to" | "comparison";
+  articleType: "how-to" | "summary" | "comparison";
   targetKeyword: string;
   priority: number;
   status: "queued" | "in-progress" | "published" | "skipped";
   pillarId: string;
   pillarSlug: string;
 }
+
+// Word count targets by article type
+const WORD_TARGETS: Record<string, { min: number; max: number; sections: string }> = {
+  "how-to": { min: 800, max: 1200, sections: "4-5" },
+  "summary": { min: 2000, max: 3000, sections: "6-8" },
+  "comparison": { min: 1500, max: 2000, sections: "5-7" },
+  "pillar": { min: 3000, max: 5000, sections: "8-10" },
+};
 
 /**
  * Fetch queued topics from all content pillars, ordered by priority
@@ -218,12 +226,13 @@ interface GeneratedArticle {
   slug: string;
   description: string;
   body: string;
-  articleType: "how-to" | "pillar" | "comparison";
+  articleType: "how-to" | "summary" | "pillar" | "comparison";
   tags: string[];
   targetKeywords: string[];
   wordCount: number;
   featuredImage?: ArticleImage;
   internalLinks: { anchorText: string; targetSlug: string; targetTitle: string }[];
+  inlineImagesCount: number;
 }
 
 async function generateOutline(
@@ -232,6 +241,29 @@ async function generateOutline(
   targetKeyword: string
 ): Promise<{ title: string; description: string; sections: Array<{ heading: string; level: number; keyPoints: string[] }>; faqQuestions: string[] }> {
   console.log("   📋 Generating outline...");
+
+  const wordTarget = WORD_TARGETS[articleType] || WORD_TARGETS["how-to"];
+  const isSummary = articleType === "summary";
+
+  // Build article-type-specific instructions
+  let typeInstructions = "";
+  if (isSummary) {
+    typeInstructions = `
+SUMMARY ARTICLE REQUIREMENTS:
+- This is a roundup/summary article that covers multiple related techniques or concepts
+- Structure should aggregate and compare different approaches
+- Include sections for each major sub-topic within the theme
+- Provide overview comparisons and when to use each approach
+- Link to individual how-to articles for deeper dives`;
+  } else if (articleType === "how-to") {
+    typeInstructions = `
+HOW-TO ARTICLE REQUIREMENTS:
+- This is a focused, actionable tutorial on a specific technique
+- Keep it concise and practical - no fluff
+- Get to the point quickly
+- Include step-by-step instructions where applicable
+- Focus on one specific skill or concept`;
+  }
 
   const response = await anthropic.messages.create({
     model: "claude-3-5-haiku-20241022",
@@ -245,7 +277,8 @@ async function generateOutline(
 
 TOPIC: ${topic}
 TARGET KEYWORD: ${targetKeyword}
-WORD TARGET: 1500-2000 words
+WORD TARGET: ${wordTarget.min}-${wordTarget.max} words
+${typeInstructions}
 
 Return JSON only (no markdown code blocks):
 {
@@ -270,9 +303,9 @@ TITLE REQUIREMENTS (CRITICAL):
 
 OTHER REQUIREMENTS:
 - Description must be compelling and under 155 characters (no colons)
-- Include 5-7 main sections (H2)
-- Each section should have 3-4 key points
-- FAQ should address 4-5 real user questions`,
+- Include ${wordTarget.sections} main sections (H2)
+- Each section should have 2-4 key points
+- FAQ should address 3-5 real user questions`,
       },
     ],
   });
@@ -297,6 +330,30 @@ async function generateDraft(
 ): Promise<string> {
   console.log("   ✍️  Generating full article...");
 
+  const wordTarget = WORD_TARGETS[articleType] || WORD_TARGETS["how-to"];
+  const isSummary = articleType === "summary";
+  const isHowTo = articleType === "how-to";
+
+  // Build article-type-specific requirements
+  let typeRequirements = "";
+  if (isSummary) {
+    typeRequirements = `
+SUMMARY ARTICLE SPECIFIC REQUIREMENTS:
+- This is a comprehensive roundup covering multiple related techniques
+- Include comparisons between different approaches
+- Add [INTERNAL: specific technique] placeholders to link to individual how-to articles
+- Provide "when to use" guidance for each technique covered
+- Include a comparison table or summary of key differences`;
+  } else if (isHowTo) {
+    typeRequirements = `
+HOW-TO ARTICLE SPECIFIC REQUIREMENTS:
+- Keep it focused and concise - this is a quick, actionable guide
+- Get to the practical steps quickly (no long intros)
+- Every paragraph should provide value
+- Avoid filler content - if a section feels padded, cut it
+- Aim for the lower end of the word count if the topic is simple`;
+  }
+
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 8192,
@@ -310,8 +367,10 @@ async function generateDraft(
 OUTLINE:
 ${JSON.stringify(outline, null, 2)}
 
-WORD TARGET: 1500-2000 words
+WORD TARGET: ${wordTarget.min}-${wordTarget.max} words
 TARGET KEYWORD: ${targetKeyword}
+ARTICLE TYPE: ${articleType}
+${typeRequirements}
 
 REQUIREMENTS:
 1. Follow the outline structure exactly
@@ -322,6 +381,18 @@ REQUIREMENTS:
 6. Include a "Common Mistakes" or "What to Avoid" section
 7. Use short paragraphs (2-3 sentences max)
 8. Include specific, actionable advice in every section
+9. IMPORTANT: Stay within the ${wordTarget.min}-${wordTarget.max} word target
+
+IMAGE PLACEHOLDERS:
+Include 2-4 image placeholders throughout the article using this format:
+[IMAGE: brief description of what the image should show]
+
+Place images:
+- After the introduction (showing the main concept)
+- After key technique sections (demonstrating the technique)
+- Before or after important tips (visual reinforcement)
+
+Example: [IMAGE: pickleball player demonstrating proper grip for third shot drop]
 
 OUTPUT FORMAT:
 Return clean Markdown with proper heading hierarchy.
@@ -468,10 +539,77 @@ Return ONLY the alt text, nothing else.`,
   return textContent.text.trim().substring(0, 125);
 }
 
+/**
+ * Find and resolve image placeholders in the content
+ * Replaces [IMAGE: description] with actual markdown image syntax
+ */
+async function resolveImagePlaceholders(
+  content: string,
+  articleTopic: string
+): Promise<{ content: string; imagesAdded: number }> {
+  console.log("   🖼️  Resolving image placeholders...");
+
+  // Find all image placeholders: [IMAGE: description]
+  const placeholderRegex = /\[IMAGE:\s*([^\]]+)\]/gi;
+  const matches = [...content.matchAll(placeholderRegex)];
+
+  if (matches.length === 0) {
+    console.log("   ⚠️  No image placeholders found");
+    return { content, imagesAdded: 0 };
+  }
+
+  console.log(`   📸 Found ${matches.length} image placeholders`);
+
+  let processedContent = content;
+  let imagesAdded = 0;
+  const maxImages = 4; // Limit to avoid quota issues
+
+  for (let i = 0; i < Math.min(matches.length, maxImages); i++) {
+    const match = matches[i];
+    const description = match[1].trim();
+    const placeholder = match[0];
+
+    try {
+      // Try to find an image for this description
+      const result = await findImageForArticle({
+        topic: `pickleball ${description}`,
+        keywords: ["pickleball", articleTopic.split(" ")[0]],
+      });
+
+      if (result.success && result.image) {
+        // Generate alt text for the image
+        const altText = await generateAltText(description, articleTopic);
+
+        // Create markdown image syntax
+        const markdownImage = `![${altText}](${result.image.url})`;
+
+        // Replace the placeholder with the actual image
+        processedContent = processedContent.replace(placeholder, markdownImage);
+        imagesAdded++;
+
+        console.log(`   ✓ Image ${i + 1}: ${result.image.source} (${altText.substring(0, 30)}...)`);
+      } else {
+        // Remove the placeholder if no image found
+        processedContent = processedContent.replace(placeholder, "");
+        console.log(`   ⚠️  No image found for: ${description.substring(0, 40)}...`);
+      }
+    } catch (error) {
+      // Remove placeholder on error
+      processedContent = processedContent.replace(placeholder, "");
+      console.log(`   ⚠️  Image fetch failed: ${error}`);
+    }
+  }
+
+  // Remove any remaining placeholders beyond the limit
+  processedContent = processedContent.replace(placeholderRegex, "");
+
+  return { content: processedContent, imagesAdded };
+}
+
 async function polishAndExtract(
   draft: string,
   targetKeyword: string,
-  articleType: "how-to" | "pillar" | "comparison"
+  articleType: "how-to" | "summary" | "pillar" | "comparison"
 ): Promise<GeneratedArticle> {
   console.log("   ✨ Extracting metadata...");
 
@@ -534,78 +672,123 @@ Return JSON only:
     articleType,
     wordCount,
     internalLinks: [], // Will be populated by processInternalLinks
+    inlineImagesCount: 0, // Will be populated by resolveImagePlaceholders
   };
 }
 
+/**
+ * Generate a unique key for Sanity blocks
+ */
+function generateBlockKey(): string {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * Parse markdown image syntax: ![alt](url)
+ * Returns null if not an image line
+ */
+function parseImageLine(line: string): { alt: string; url: string } | null {
+  // Match standalone image on a line: ![alt text](url)
+  const imageRegex = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+  const match = line.trim().match(imageRegex);
+  if (match) {
+    return {
+      alt: match[1] || "",
+      url: match[2],
+    };
+  }
+  return null;
+}
+
+/**
+ * Detect image source from URL
+ */
+function detectImageSource(url: string): "unsplash" | "dalle" | "imagen" | undefined {
+  if (url.includes("unsplash.com")) return "unsplash";
+  if (url.includes("oaidalleapiprodscus") || url.includes("openai")) return "dalle";
+  if (url.includes("googleapis.com") || url.includes("gemini")) return "imagen";
+  return undefined;
+}
+
 function markdownToPortableText(markdown: string): unknown[] {
-  // Simple conversion - in production you'd use a proper markdown-to-portable-text library
   const blocks: unknown[] = [];
   const lines = markdown.split("\n");
   let currentParagraph = "";
 
+  // Helper to flush current paragraph to blocks
+  const flushParagraph = () => {
+    if (currentParagraph.trim()) {
+      blocks.push({
+        _type: "block",
+        _key: generateBlockKey(),
+        style: "normal",
+        children: [{ _type: "span", text: currentParagraph.trim() }],
+      });
+      currentParagraph = "";
+    }
+  };
+
   for (const line of lines) {
     const trimmedLine = line.trim();
+
+    // Check for image first
+    const imageData = parseImageLine(trimmedLine);
+    if (imageData) {
+      flushParagraph();
+      blocks.push({
+        _type: "externalImage",
+        _key: generateBlockKey(),
+        url: imageData.url,
+        alt: imageData.alt,
+        source: detectImageSource(imageData.url),
+      });
+      continue;
+    }
 
     if (trimmedLine.startsWith("# ")) {
       // H1 - skip as title is separate
       continue;
     } else if (trimmedLine.startsWith("## ")) {
-      // Flush current paragraph
-      if (currentParagraph) {
-        blocks.push({
-          _type: "block",
-          _key: Math.random().toString(36).substr(2, 9),
-          style: "normal",
-          children: [{ _type: "span", text: currentParagraph.trim() }],
-        });
-        currentParagraph = "";
-      }
+      flushParagraph();
       blocks.push({
         _type: "block",
-        _key: Math.random().toString(36).substr(2, 9),
+        _key: generateBlockKey(),
         style: "h2",
         children: [{ _type: "span", text: trimmedLine.replace("## ", "") }],
       });
     } else if (trimmedLine.startsWith("### ")) {
-      if (currentParagraph) {
-        blocks.push({
-          _type: "block",
-          _key: Math.random().toString(36).substr(2, 9),
-          style: "normal",
-          children: [{ _type: "span", text: currentParagraph.trim() }],
-        });
-        currentParagraph = "";
-      }
+      flushParagraph();
       blocks.push({
         _type: "block",
-        _key: Math.random().toString(36).substr(2, 9),
+        _key: generateBlockKey(),
         style: "h3",
         children: [{ _type: "span", text: trimmedLine.replace("### ", "") }],
       });
+    } else if (trimmedLine.startsWith("#### ")) {
+      flushParagraph();
+      blocks.push({
+        _type: "block",
+        _key: generateBlockKey(),
+        style: "h4",
+        children: [{ _type: "span", text: trimmedLine.replace("#### ", "") }],
+      });
+    } else if (trimmedLine.startsWith("> ")) {
+      flushParagraph();
+      blocks.push({
+        _type: "block",
+        _key: generateBlockKey(),
+        style: "blockquote",
+        children: [{ _type: "span", text: trimmedLine.replace("> ", "") }],
+      });
     } else if (trimmedLine === "") {
-      if (currentParagraph) {
-        blocks.push({
-          _type: "block",
-          _key: Math.random().toString(36).substr(2, 9),
-          style: "normal",
-          children: [{ _type: "span", text: currentParagraph.trim() }],
-        });
-        currentParagraph = "";
-      }
+      flushParagraph();
     } else {
       currentParagraph += " " + trimmedLine;
     }
   }
 
   // Flush remaining paragraph
-  if (currentParagraph) {
-    blocks.push({
-      _type: "block",
-      _key: Math.random().toString(36).substr(2, 9),
-      style: "normal",
-      children: [{ _type: "span", text: currentParagraph.trim() }],
-    });
-  }
+  flushParagraph();
 
   return blocks;
 }
@@ -669,6 +852,7 @@ async function saveToSanity(
       internalLinksAdded: article.internalLinks.length,
       hasImage: !!article.featuredImage,
       imageSource: article.featuredImage?.source || null,
+      inlineImagesCount: article.inlineImagesCount,
     },
   };
 
@@ -688,7 +872,7 @@ async function saveToSanity(
 
 async function generateArticle(
   topic: string,
-  articleType: "how-to" | "pillar" | "comparison",
+  articleType: "how-to" | "summary" | "pillar" | "comparison",
   targetKeyword: string,
   pillarSlug: string,
   index: number
@@ -705,14 +889,20 @@ async function generateArticle(
     console.log(`   ✓ Outline: ${outline.sections.length} sections`);
 
     // Step 2: Generate draft
-    const draft = await generateDraft(outline, articleType, targetKeyword);
+    let draft = await generateDraft(outline, articleType, targetKeyword);
     console.log(`   ✓ Draft: ${draft.split(/\s+/).length} words`);
 
-    // Step 3: Polish and extract metadata
+    // Step 3: Resolve inline image placeholders
+    const { content: contentWithImages, imagesAdded } = await resolveImagePlaceholders(draft, topic);
+    draft = contentWithImages;
+    console.log(`   ✓ Inline images: ${imagesAdded} added`);
+
+    // Step 4: Polish and extract metadata
     const article = await polishAndExtract(draft, targetKeyword, articleType);
+    article.inlineImagesCount = imagesAdded;
     console.log(`   ✓ Polished: ${article.wordCount} words`);
 
-    // Step 4: Process internal links
+    // Step 5: Process internal links
     const { linkedContent, linksAdded } = await processInternalLinks(
       article.body,
       article.slug,
@@ -722,7 +912,7 @@ async function generateArticle(
     article.internalLinks = linksAdded;
     console.log(`   ✓ Internal links: ${linksAdded.length} added`);
 
-    // Step 5: Generate/find featured image
+    // Step 6: Generate/find featured image
     const featuredImage = await getArticleImage(
       article.title,
       topic,
@@ -730,12 +920,12 @@ async function generateArticle(
     );
     if (featuredImage) {
       article.featuredImage = featuredImage;
-      console.log(`   ✓ Image: ${featuredImage.source} (${featuredImage.alt.substring(0, 40)}...)`);
+      console.log(`   ✓ Featured image: ${featuredImage.source} (${featuredImage.alt.substring(0, 40)}...)`);
     } else {
-      console.log(`   ⚠️ No image available`);
+      console.log(`   ⚠️ No featured image available`);
     }
 
-    // Step 6: Save to Sanity
+    // Step 7: Save to Sanity
     const sanityId = await saveToSanity(article, pillarSlug);
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -745,7 +935,8 @@ async function generateArticle(
     console.log(`   🔗 Slug: ${article.slug}`);
     console.log(`   📊 Words: ${article.wordCount}`);
     console.log(`   🔗 Internal Links: ${article.internalLinks.length}`);
-    console.log(`   🖼️  Image: ${article.featuredImage ? article.featuredImage.source : "none"}`);
+    console.log(`   🖼️  Featured Image: ${article.featuredImage ? article.featuredImage.source : "none"}`);
+    console.log(`   📸 Inline Images: ${article.inlineImagesCount}`);
     console.log(`   🏷️  Tags: ${article.tags.join(", ")}`);
     console.log(`   ⏱️  Time: ${duration}s`);
     console.log(`   🆔 Sanity ID: ${sanityId}`);

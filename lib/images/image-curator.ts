@@ -3,9 +3,9 @@
  *
  * Orchestrates image sourcing with priority order:
  * 1. Unsplash (free) - Search based on article topic
- * 2. DALL-E 3 ($0.04/image) - Only when stock photos unavailable
+ * 2. Google Imagen ($0.03/image) - Only when stock photos unavailable
  *
- * Budget: Max 10 DALL-E images/day (~$4/month)
+ * Budget: Max 10 Imagen images/day (~$3/month)
  */
 
 import {
@@ -19,15 +19,15 @@ import {
 import {
   generateBlogImage,
   estimateCost,
-  isDalleConfigured,
-  type DalleImage,
-} from "./dalle";
+  isImagenConfigured,
+  type ImagenImage,
+} from "./imagen";
 
 // ============================================
 // Types
 // ============================================
 
-export type BlogImage = UnsplashImage | DalleImage;
+export type BlogImage = UnsplashImage | ImagenImage;
 
 export interface ImageResult {
   success: boolean;
@@ -40,29 +40,29 @@ export interface ImageResult {
 export interface CurationOptions {
   topic: string;
   keywords?: string[];
-  preferDalle?: boolean;
-  maxDalleCost?: number;
+  preferImagen?: boolean;
+  maxImagenCost?: number;
 }
 
 // ============================================
 // Daily Budget Tracking
 // ============================================
 
-let dailyDalleCount = 0;
+let dailyImagenCount = 0;
 let lastResetDate = new Date().toDateString();
-const MAX_DAILY_DALLE = 10;
+const MAX_DAILY_IMAGEN = 10;
 
-function checkDallebudget(): boolean {
+function checkImagenBudget(): boolean {
   const today = new Date().toDateString();
   if (today !== lastResetDate) {
-    dailyDalleCount = 0;
+    dailyImagenCount = 0;
     lastResetDate = today;
   }
-  return dailyDalleCount < MAX_DAILY_DALLE;
+  return dailyImagenCount < MAX_DAILY_IMAGEN;
 }
 
-function incrementDalleCount(): void {
-  dailyDalleCount++;
+function incrementImagenCount(): void {
+  dailyImagenCount++;
 }
 
 // ============================================
@@ -71,18 +71,18 @@ function incrementDalleCount(): void {
 
 /**
  * Find the best image for an article
- * Priority: Unsplash -> DALL-E (within budget)
+ * Priority: Unsplash -> Google Imagen (within budget)
  */
 export async function findImageForArticle(
   options: CurationOptions
 ): Promise<ImageResult> {
-  const { topic, keywords = [], preferDalle = false } = options;
+  const { topic, keywords = [], preferImagen = false } = options;
 
   // Build search query
   const searchQuery = [topic, ...keywords.slice(0, 2)].join(" ");
 
-  // If not preferring DALL-E, try Unsplash first
-  if (!preferDalle && isUnsplashConfigured()) {
+  // If not preferring Imagen, try Unsplash first
+  if (!preferImagen && isUnsplashConfigured()) {
     try {
       const unsplashImage = await getRandomImage(searchQuery);
 
@@ -98,26 +98,26 @@ export async function findImageForArticle(
         };
       }
     } catch (error) {
-      console.warn("Unsplash search failed, trying DALL-E:", error);
+      console.warn("Unsplash search failed, trying Imagen:", error);
     }
   }
 
-  // Fall back to DALL-E if within budget
-  if (isDalleConfigured() && checkDallebudget()) {
+  // Fall back to Google Imagen if within budget
+  if (isImagenConfigured() && checkImagenBudget()) {
     try {
-      const dalleImage = await generateBlogImage(topic);
-      incrementDalleCount();
+      const imagenImage = await generateBlogImage(topic);
+      incrementImagenCount();
 
       return {
         success: true,
-        image: dalleImage,
-        cost: estimateCost("1792x1024", "standard"),
+        image: imagenImage,
+        cost: estimateCost(),
       };
     } catch (error) {
       return {
         success: false,
         cost: 0,
-        error: `DALL-E generation failed: ${error}`,
+        error: `Imagen generation failed: ${error}`,
       };
     }
   }
@@ -126,7 +126,7 @@ export async function findImageForArticle(
   return {
     success: false,
     cost: 0,
-    error: "No image sources available or daily DALL-E budget exceeded",
+    error: "No image sources available or daily Imagen budget exceeded",
   };
 }
 
@@ -168,9 +168,9 @@ export async function findMultipleImages(
 }
 
 /**
- * Get current DALL-E usage stats
+ * Get current Imagen usage stats
  */
-export function getDalleUsageStats(): {
+export function getImagenUsageStats(): {
   used: number;
   remaining: number;
   maxDaily: number;
@@ -179,15 +179,15 @@ export function getDalleUsageStats(): {
   // Reset if new day
   const today = new Date().toDateString();
   if (today !== lastResetDate) {
-    dailyDalleCount = 0;
+    dailyImagenCount = 0;
     lastResetDate = today;
   }
 
   return {
-    used: dailyDalleCount,
-    remaining: MAX_DAILY_DALLE - dailyDalleCount,
-    maxDaily: MAX_DAILY_DALLE,
-    estimatedCost: dailyDalleCount * estimateCost("1792x1024", "standard"),
+    used: dailyImagenCount,
+    remaining: MAX_DAILY_IMAGEN - dailyImagenCount,
+    maxDaily: MAX_DAILY_IMAGEN,
+    estimatedCost: dailyImagenCount * estimateCost(),
   };
 }
 
@@ -195,12 +195,12 @@ export function getDalleUsageStats(): {
  * Check if any image source is available
  */
 export function isImageSourceAvailable(): boolean {
-  return isUnsplashConfigured() || (isDalleConfigured() && checkDallebudget());
+  return isUnsplashConfigured() || (isImagenConfigured() && checkImagenBudget());
 }
 
 export default {
   findImageForArticle,
   findMultipleImages,
-  getDalleUsageStats,
+  getImagenUsageStats,
   isImageSourceAvailable,
 };

@@ -18,15 +18,15 @@ export {
   generateImage,
   generateBlogImage,
   estimateCost,
-  isDalleConfigured,
-  type DalleImage,
+  isImagenConfigured,
+  type ImagenImage,
   type GenerationOptions,
-} from "./dalle";
+} from "./imagen";
 
 export {
   findImageForArticle,
   findMultipleImages,
-  getDalleUsageStats,
+  getImagenUsageStats,
   isImageSourceAvailable,
   type BlogImage,
   type ImageResult,

@@ -102,6 +102,18 @@ const nextPost =
       <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
     </div>
 
+    {/* Featured Image */}
+    {ogImageUrl && (
+      <figure class="my-6">
+        <img
+          src={ogImageUrl}
+          alt={title}
+          class="w-full rounded-lg object-cover"
+          loading="eager"
+        />
+      </figure>
+    )}
+
     <!-- Main Article Content -->
     <article
       id="article"
