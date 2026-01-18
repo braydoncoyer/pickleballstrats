@@ -2,9 +2,13 @@
 import { Font } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
+import { PUBLIC_ADSENSE_CLIENT_ID } from "astro:env/client";
 import { SITE } from "@/config";
 import VemetricScript from '@vemetric/astro';
 import "@/styles/global.css";
+
+// Check if we should include AdSense script (for verification and future ads)
+const hasAdSense = Boolean(PUBLIC_ADSENSE_CLIENT_ID);
 
 type Props = {
   title?: string;
@@ -139,6 +143,15 @@ const structuredData = {
     }
 
     <ClientRouter />
+
+    <!-- AdSense Script (for verification and ads) -->
+    {hasAdSense && (
+      <script
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUBLIC_ADSENSE_CLIENT_ID}`}
+        crossorigin="anonymous"
+      />
+    )}
 
     <!-- Minimal inline script to prevent FOUC - sets theme immediately -->
     <script is:inline>
