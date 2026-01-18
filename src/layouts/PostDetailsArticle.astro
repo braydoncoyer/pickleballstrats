@@ -102,22 +102,13 @@ const nextPost =
       <Datetime {pubDatetime} {modDatetime} {timezone} size="lg" />
     </div>
 
-    <div class="flex flex-col lg:flex-row lg:gap-8">
-      <!-- Main Article Content -->
-      <article
-        id="article"
-        class="app-prose mt-8 w-full max-w-app prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg) lg:flex-1"
-      >
-        <Content />
-      </article>
-
-      <!-- Sidebar with Ad (desktop only) -->
-      <aside class="hidden lg:block lg:w-72 lg:flex-shrink-0 mt-8">
-        <div class="sticky top-4">
-          <AdUnit slot="sidebar" position="vertical" />
-        </div>
-      </aside>
-    </div>
+    <!-- Main Article Content -->
+    <article
+      id="article"
+      class="app-prose mt-8 prose-pre:bg-(--shiki-light-bg) dark:prose-pre:bg-(--shiki-dark-bg)"
+    >
+      <Content />
+    </article>
 
     <hr class="my-8 border-dashed" />
 
