@@ -3,6 +3,7 @@ import { Font } from "astro:assets";
 import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
+import VemetricScript from '@vemetric/astro';
 import "@/styles/global.css";
 
 type Props = {
@@ -97,6 +98,8 @@ const structuredData = {
         />
       )
     }
+
+    <VemetricScript token="kVVyM1FT7zA13yWN" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />

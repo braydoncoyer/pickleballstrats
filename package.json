@@ -31,6 +31,7 @@
     "@sanity/client": "^6.28.0",
     "@sanity/image-url": "^1.1.0",
     "@tailwindcss/vite": "^4.1.18",
+    "@vemetric/astro": "^0.6.1",
     "astro": "^5.16.6",
     "dayjs": "^1.11.19",
     "groq": "^3.77.2",
