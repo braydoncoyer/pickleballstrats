@@ -26,6 +26,8 @@ The alternative is a third shot drive, but this high-risk shot only works when y
 
 ## Proper Grip and Body Positioning
 
+![Pickleball player demonstrating proper continental grip technique for precise third shot drop control](https://cdn.sanity.io/images/gvi93s1j/production/c0d27a79e34c63a63948125779520dc2ad16e479-1024x1024.png)
+
 Your grip choice significantly impacts your control and consistency. Most advanced players use a continental grip for third shot drops because it provides the best feel and touch. This grip sits between an Eastern forehand and Eastern backhand grip, allowing you to hit both forehand and backhand drops without changing your grip.
 
 If you're currently using an Eastern forehand grip, don't panic. You can still execute effective drops, but you'll need to be more conscious of your paddle face angle.
@@ -36,6 +38,8 @@ Keep your knees slightly bent and your weight on the balls of your feet. This at
 
 ## Paddle Angle and Contact Point
 
+![Pickleball paddle angle guide showing optimal third shot drop technique with correct 15-20 degree positioning](https://cdn.sanity.io/images/gvi93s1j/production/b99049d9ce8040615ae7e953596c0ce24e8db08a-1024x1024.png)
+
 The paddle angle is where most players struggle with their third shot drop technique. Your paddle face should be slightly open (tilted upward) at contact, but not excessively so. Think about a 15-20 degree angle from vertical.
 
 Too closed, and your shot will go into the net. Too open, and you'll send the ball sailing long. The key is finding that sweet spot where the ball clears the net with 2-3 feet of clearance and drops softly into the kitchen.
@@ -45,6 +49,8 @@ Your contact point should be at the peak of the ball's bounce or slightly on the
 Avoid letting the ball drop too low before making contact. Low contact points force you to hit up more aggressively, making it harder to control the shot's arc and landing spot.
 
 ## Technique Breakdown Step by Step
+
+![Pickleball player demonstrating third shot drop technique with smooth weight transfer and precise paddle swing motion](https://cdn.sanity.io/images/gvi93s1j/production/e375ccd0e52ab51bef416a558c3cac454e0bbddd-1024x1024.png)
 
 Let's break down the mechanics of a perfect third shot drop:
 

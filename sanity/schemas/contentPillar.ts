@@ -4,9 +4,10 @@
  * Pillars are the cornerstone content pieces that cluster articles link to.
  * This enables the Jeremy Moser / Niche Site Lady content strategy:
  *
- * - Pillar articles (10%): 3000-5000 words, comprehensive guides
- * - How-To articles (80%): 1500-2000 words, link UP to pillar
- * - Comparison articles (10%): 2000-2500 words, commercial intent
+ * - Pillar articles: 3000-5000 words, comprehensive guides
+ * - Summary articles: 2000-3000 words, roundups of how-to articles
+ * - How-To articles: 800-1200 words, focused actionable tutorials
+ * - Comparison articles: 1500-2000 words, commercial intent
  */
 
 import { defineField, defineType } from "sanity";
@@ -81,6 +82,7 @@ export const contentPillar = defineType({
               options: {
                 list: [
                   { title: "How-To", value: "how-to" },
+                  { title: "Summary", value: "summary" },
                   { title: "Comparison", value: "comparison" },
                 ],
               },

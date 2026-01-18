@@ -2,6 +2,7 @@
 title: "10 Essential Pickleball Drills for 4.0 Players"
 description: "Master advanced pickleball skills with these 10 essential drills designed specifically for 4.0 level players to elevate your game and court performance."
 pubDatetime: 2026-01-18T19:20:27.789Z
+ogImage: "https://images.unsplash.com/photo-1629022978871-83dd9e1f831f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NTkzMTd8MHwxfHNlYXJjaHwyfHxwaWNrbGViYWxsJTIwMTAlMjBCZXN0JTIwRHJpbGxzJTIwZm9yJTIwNC4wJTIwUGlja2xlYmFsbCUyMFBsYXllcnMlMjBwaWNrbGViYWxsJTIwcGlja2xlYmFsbCUyMGRyaWxscyUyMDQuMCUyMHBsYXllcnN8ZW58MHwwfHx8MTc2ODc2NDAyNnww&ixlib=rb-4.1.0&q=80&w=1080"
 tags:
   - pickleball
   - sports training
@@ -29,6 +30,8 @@ At the 4.0 level, you're no longer just hitting the ball back and forth. You're 
 The third shot drop is your gateway to the kitchen line, and at 4.0 level, it needs to be automatic.
 
 ### Setup and Execution
+
+![Pickleball player executing precise third shot drop technique from baseline, paddle angled to land softly in kitchen zone](https://cdn.sanity.io/images/gvi93s1j/production/1134c35dfe61f46eed62c264a2859e4ececddce9-1024x1024.png)
 
 Position yourself at the baseline with a partner at the kitchen line. Have them feed you balls that simulate a return of serve. Your goal is to drop the ball into the kitchen consistently, landing within two feet of the net.
 
@@ -96,6 +99,8 @@ Defense wins points at the 4.0 level. You need to be in position before your opp
 
 ### Quick Lateral Movement Training
 
+![Pickleball player demonstrating lateral shuffle drill with precise footwork and ready stance on court](https://cdn.sanity.io/images/gvi93s1j/production/725fce3684ad08c7a5408fd487564d2ab6c9d25f-1024x1024.png)
+
 Practice side shuffles along the baseline and kitchen line. Focus on maintaining your ready position while moving quickly. Your paddle should stay in front of your body, and your weight should remain on the balls of your feet.
 
 Set up cones 10 feet apart and shuffle between them, touching each cone with your non-paddle hand while maintaining proper form.
@@ -145,6 +150,8 @@ Practice using hand signals and body language to communicate with your partner. 
 Work on subtle cues like paddle position and court positioning that tell your partner your intentions without alerting your opponents.
 
 ### Strategic Court Positioning
+
+![Pickleball doubles stacking formation diagram showing strategic court positioning for advanced 4.0 player teamwork](https://cdn.sanity.io/images/gvi93s1j/production/0f5a37cd6d9c9b4173effc50f96b2168ea8dcfc6-1024x1024.png)
 
 Practice traditional positioning and stacking scenarios. Work on switching smoothly without leaving gaps in your court coverage.
 

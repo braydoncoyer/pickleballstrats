@@ -27,6 +27,7 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@astrojs/rss": "^4.0.14",
     "@astrojs/sitemap": "^3.6.0",
+    "@google/genai": "^1.37.0",
     "@resvg/resvg-js": "^2.6.2",
     "@sanity/client": "^6.28.0",
     "@sanity/image-url": "^1.1.0",

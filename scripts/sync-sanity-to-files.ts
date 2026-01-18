@@ -36,7 +36,20 @@ interface SanityArticle {
     _type: string;
     style?: string;
     children?: Array<{ text: string }>;
+    // External image fields
+    url?: string;
+    alt?: string;
+    source?: string;
+    caption?: string;
+    // Sanity CDN image fields
+    asset?: { _ref: string };
   }>;
+  imageMetadata?: {
+    url: string;
+    alt: string;
+    source: string;
+    attribution?: string;
+  };
 }
 
 function portableTextToMarkdown(body: SanityArticle["body"]): string {
@@ -69,6 +82,18 @@ function portableTextToMarkdown(body: SanityArticle["body"]): string {
             lines.push(`${text}\n`);
           }
       }
+    } else if (block._type === "externalImage") {
+      // Convert external image block to markdown image syntax
+      const alt = block.alt || "";
+      const url = block.url || "";
+      if (url) {
+        lines.push(`![${alt}](${url})\n`);
+      }
+    } else if (block._type === "image" && block.asset) {
+      // Handle Sanity CDN images (if any exist)
+      // Note: This would need the asset URL resolved via Sanity's image URL builder
+      const alt = block.alt || "";
+      lines.push(`![${alt}](sanity-image-placeholder)\n`);
     }
   }
 
@@ -88,6 +113,11 @@ function generateFrontmatter(article: SanityArticle): string {
 
   if (modDate) {
     frontmatter.push(`modDatetime: ${modDate.toISOString()}`);
+  }
+
+  // Add featured image if available
+  if (article.imageMetadata?.url) {
+    frontmatter.push(`ogImage: "${article.imageMetadata.url}"`);
   }
 
   if (article.tags && article.tags.length > 0) {
@@ -126,7 +156,8 @@ async function syncArticles(includeDrafts = true) {
         articleType,
         tags,
         draft,
-        body
+        body,
+        imageMetadata
       }`
     : `*[_type == "article" && draft != true] | order(publishedAt desc) {
         _id,
@@ -138,7 +169,8 @@ async function syncArticles(includeDrafts = true) {
         articleType,
         tags,
         draft,
-        body
+        body,
+        imageMetadata
       }`;
 
   const articles: SanityArticle[] = await client.fetch(query);

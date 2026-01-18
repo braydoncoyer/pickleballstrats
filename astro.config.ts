@@ -60,6 +60,27 @@ export default defineConfig({
         context: "client",
         optional: true,
       }),
+      // AdSense Configuration
+      PUBLIC_ADSENSE_CLIENT_ID: envField.string({
+        access: "public",
+        context: "client",
+        optional: true,
+      }),
+      PUBLIC_ADSENSE_SLOT_HORIZONTAL: envField.string({
+        access: "public",
+        context: "client",
+        optional: true,
+      }),
+      PUBLIC_ADSENSE_SLOT_RECTANGLE: envField.string({
+        access: "public",
+        context: "client",
+        optional: true,
+      }),
+      PUBLIC_ADSENSE_SLOT_IN_CONTENT: envField.string({
+        access: "public",
+        context: "client",
+        optional: true,
+      }),
     },
   },
   experimental: {

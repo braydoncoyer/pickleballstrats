@@ -27,7 +27,7 @@ AI-powered automated blog platform targeting **Advanced Pickleball Strategy** fo
 | CMS | Sanity |
 | Hosting | Vercel |
 | AI | Claude API (Haiku for planning, Sonnet for writing) |
-| Images | Unsplash (free) + DALL-E 3 (fallback) |
+| Images | Unsplash (free) + Google Imagen (fallback) |
 
 ---
 
@@ -84,9 +84,10 @@ Topics are managed in Sanity under each **Content Pillar**:
 
 | Type | Word Target | Purpose |
 |------|-------------|---------|
-| `how-to` | 1500-2000 | Specific techniques, tutorials |
-| `pillar` | 3000-5000 | Comprehensive guides |
-| `comparison` | 2000-2500 | X vs Y comparisons |
+| `how-to` | 800-1200 | Focused, actionable tutorials on specific techniques |
+| `summary` | 2000-3000 | Roundup articles that aggregate multiple how-to topics |
+| `comparison` | 1500-2000 | X vs Y comparisons |
+| `pillar` | 3000-5000 | Comprehensive guides (cornerstone content) |
 
 ---
 
@@ -107,9 +108,9 @@ The pipeline automatically creates internal links between articles:
 
 Priority order:
 1. **Unsplash** (free) - Searches based on article topic
-2. **DALL-E 3** ($0.04/image) - Fallback when no Unsplash match
+2. **Google Imagen** (~$0.03/image) - Fallback when no Unsplash match
 
-Budget: Max 10 DALL-E images/day
+Budget: Max 10 Imagen images/day
 
 All images get AI-generated SEO alt text (under 125 characters).
 
@@ -124,7 +125,7 @@ ai-blog/
 ├── lib/
 │   ├── ai/                   # Claude client, tone training
 │   ├── generation/           # Article pipeline, internal linker
-│   ├── images/               # Unsplash, DALL-E integration
+│   ├── images/               # Unsplash, Google Imagen integration
 │   └── sanity/               # CMS client, queries
 ├── sanity/schemas/           # Sanity CMS schemas
 ├── .claude/
@@ -179,7 +180,7 @@ ANTHROPIC_API_KEY=your_claude_key
 
 # Images
 UNSPLASH_ACCESS_KEY=your_unsplash_key
-OPENAI_API_KEY=your_openai_key  # Optional, for DALL-E fallback
+GEMINI_API_KEY=your_gemini_key  # Optional, for Google Imagen fallback
 ```
 
 ---
@@ -226,8 +227,8 @@ npm run preview
 |-----------|------|
 | Haiku (outline, metadata) | ~$0.003/article |
 | Sonnet (draft) | ~$0.15/article |
-| DALL-E image | $0.04-0.08/image |
-| **Total per article** | ~$0.15-0.25 |
+| Google Imagen | ~$0.03/image |
+| **Total per article** | ~$0.15-0.20 |
 
 ---
 
