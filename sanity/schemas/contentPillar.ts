@@ -140,13 +140,14 @@ export const contentPillar = defineType({
             },
             prepare(selection) {
               const { topic, generatedTitle, status } = selection;
-              const statusEmoji = {
+              const statusEmojiMap: Record<string, string> = {
                 queued: "⏳",
                 titled: "📝",
                 "in-progress": "🔄",
                 published: "✅",
                 skipped: "⏭️",
-              }[status] || "❓";
+              };
+              const statusEmoji = statusEmojiMap[status as string] || "❓";
               return {
                 title: generatedTitle || topic,
                 subtitle: `${statusEmoji} ${status}${generatedTitle ? "" : " (no title yet)"}`,
