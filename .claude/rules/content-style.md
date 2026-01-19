@@ -6,12 +6,16 @@ These rules apply to ALL content generation in this project. They are non-negoti
 
 ## Title Rules
 
-### NEVER Do
+### ⛔ ZERO TOLERANCE: NO COLONS IN TITLES ⛔
 
-- **No colons in titles** - Never split titles with colons
-  - ❌ "10 Essential Drills: Elevate Your Game"
-  - ❌ "Pickleball Strategy: The Ultimate Guide"
-  - ❌ "Third Shot Drop: Master This Essential Shot"
+This is the #1 rule. Any title with a colon will be REJECTED.
+
+- **NEVER use colons in titles** - No exceptions, no "Title: Subtitle" format
+  - ❌ REJECTED: "10 Essential Drills: Elevate Your Game"
+  - ❌ REJECTED: "Pickleball Strategy: The Ultimate Guide"
+  - ❌ REJECTED: "Third Shot Drop: Master This Essential Shot"
+  - ❌ REJECTED: "Power vs Control: How to Choose"
+  - ❌ REJECTED: "Stacking Strategy: A Complete Guide"
 
 - **No clickbait patterns**
   - ❌ "You Won't Believe..."
@@ -61,6 +65,8 @@ These rules apply to ALL content generation in this project. They are non-negoti
 - Lead with the main point
 - Avoid passive voice when possible
 - No run-on sentences
+- **After 2 medium sentences, add 1 short punch (under 8 words)**
+- Use intentional fragments for emphasis: "Worth the practice." "Every time."
 
 ### Word Choice
 
@@ -79,6 +85,185 @@ These rules apply to ALL content generation in this project. They are non-negoti
 - "This improves..." instead of "This is a game changer for..."
 - "Here's how to improve..." instead of "Take your game to the next level by..."
 - "In summary" or just start summarizing (no intro needed)
+
+---
+
+## Humanization Rules (CRITICAL)
+
+These rules make content sound authentically human, not AI-generated.
+
+### AI Phrase Blacklist
+
+**NEVER use these phrases - they are AI tells:**
+
+| AI Phrase | Use Instead |
+|-----------|-------------|
+| "In this article, we will explore" | Delete entirely, just start with the hook |
+| "Let's delve into" | "Let's look at" or just start explaining |
+| "It's worth noting that" | Delete, just state the fact |
+| "As mentioned earlier" | Reference the specific section |
+| "comprehensive guide" | "guide" or "complete guide" |
+| "robust solution" | "solid approach" or just "solution" |
+| "leverage" | "use" |
+| "utilize" | "use" |
+| "facilitate" | "help" |
+| "cutting-edge" | "latest" or "new" |
+| "game-changing" | Describe the specific impact |
+| "ever-evolving" | "changing" or be specific about what changed |
+| "synergy" | Describe the actual benefit |
+| "empower" | "help" or "enable" |
+| "dive deep" | "look at" or "explore" |
+| "unpack" | "explain" or "break down" |
+| "landscape" | Be specific about the context |
+| "paradigm" | Avoid entirely |
+| "holistic" | "complete" or "full" |
+| "streamline" | "simplify" or "speed up" |
+| "optimize" | "improve" |
+| "innovative" | Be specific about what's new |
+| "seamless" | "smooth" or describe the experience |
+| "groundbreaking" | Be specific about the breakthrough |
+
+### Sentence Variety Rules
+
+**The rhythm that sounds human:**
+1. Medium sentence (10-20 words)
+2. Medium sentence (10-20 words)
+3. Short punch (under 8 words)
+
+**Example flow:**
+- "The third shot drop is essential for advancing to the kitchen. Most players struggle because they hit it too hard. Short swing. That's the fix."
+
+**Intentional fragments to use:**
+- "Worth the practice."
+- "Every time."
+- "No exceptions."
+- "Simple as that."
+- "That's it."
+- "Game over."
+- "Trust me on this."
+
+### Personal Perspective Injection
+
+**Required in every article:**
+- One "In my experience..." or "What I've found..."
+- One "we call this..." when introducing terminology
+- One acknowledgment of difficulty: "This is tricky at first" or "one of the harder skills"
+
+### Specific Details Over Generic
+
+| ❌ Generic | ✅ Specific |
+|------------|-------------|
+| "Move quickly to the ball" | "Take 2-3 shuffle steps, keeping your paddle at chest height" |
+| "Practice regularly" | "Spend 15 minutes before each session on this drill" |
+| "Get in position early" | "Split step 0.5 seconds before your opponent contacts the ball" |
+| "Most players struggle" | "67% of 3.5 players miss this shot" |
+| "Practice a lot" | "3-4 sessions per week, 20 minutes each" |
+
+### Number Specificity
+
+**Use odd/specific numbers, avoid round numbers:**
+- ✅ 67% not 70%
+- ✅ 3-4 times not 5 times
+- ✅ 2.3 seconds not 2 seconds
+- ✅ 0.5 seconds not half a second
+- ✅ 3.7 rating not 4.0 rating (when discussing skill levels generally)
+
+### Sample Phrases to Use
+
+These match Braydon's actual writing voice:
+- "at its core"
+- "Whether you're [X] or [Y]"
+- "we call this"
+- "one of the hardest parts"
+- "here's the thing"
+- "Let's break this down"
+- "Here's what separates 3.5 players from 4.0+"
+- "This is where most players go wrong"
+
+---
+
+## Article Structure Templates
+
+### How-To Articles (800-1200 words)
+
+**Title Pattern:** [Action Verb] + [Specific Technique] + [Context/Level]
+**Example:** "How to Execute the Erne Shot in Competitive Doubles"
+
+**Structure:**
+1. **Introduction** (2-3 paragraphs) - Problem-first hook, quick definition, what's covered
+2. **What Is [Technique]?** (40-60 words) - Featured snippet target, clear "is" definition
+3. **When to Use [Technique]** - 3-4 specific scenarios, "Use this when..." format
+4. **Step-by-Step Execution** - Each step 50-80 words with body positions
+5. **Common Mistakes to Avoid** - 3-4 mistakes with WHY, "Instead of X, do Y"
+6. **Pro Tips** - 2-3 advanced variations, personal insight required
+7. **FAQ** (3-4 questions) - Real questions, 40-60 word answers
+8. **Quick Summary** - 3-5 action-oriented bullet points
+
+### Summary/Roundup Articles (2000-3000 words)
+
+**Title Pattern:** [Number] + [Category] + [Audience/Purpose]
+**Example:** "10 Essential Pickleball Drills for 4.0 Players"
+
+**Structure:**
+1. **Introduction** - Scenario hook or statistic, overview
+2. **Quick Comparison Table** - Scannable overview before deep dive
+3. **[Item 1-N]: [Name]** - Why It Works, How to Do It, Advanced Variation
+4. **How to Structure Your Practice** - Weekly schedule, combinations
+5. **Common Questions** - FAQ section
+6. **What to Focus on First** - Prioritized recommendations
+
+### Comparison Articles (1500-2000 words)
+
+**Title Pattern:** [Option A] vs [Option B]: [Decision Context]
+**Example:** "Stacking vs Traditional Positioning in Doubles"
+
+**Structure:**
+1. **Introduction** - When it matters, quick verdict (don't bury the lead)
+2. **Quick Comparison Table** - Side-by-side scannable
+3. **What Is [Option A]?** (40-60 words) - Featured snippet
+4. **What Is [Option B]?** (40-60 words) - Featured snippet
+5. **[Option A]: Pros and Cons** - Advantages, Disadvantages, Best For
+6. **[Option B]: Pros and Cons** - Advantages, Disadvantages, Best For
+7. **Head-to-Head: Key Differences** - 3-5 comparison points
+8. **Which Should You Choose?** - Decision framework
+9. **FAQ**
+10. **The Verdict** - Clear recommendation with reasoning
+
+### Pillar Articles (3000-5000 words)
+
+**Title Pattern:** The Complete Guide to [Topic]
+**Example:** "The Complete Guide to Pickleball Doubles Strategy"
+
+**Structure:**
+1. **Introduction** - Why it matters, target level, how to use guide
+2. **Table of Contents** - Auto-generated, linked
+3. **[Major Section 1-N]** - With subsections, [INTERNAL: topic] links
+4. **Putting It All Together** - Integration, practice progression
+5. **Advanced Concepts** - Next-level for 4.5+ players
+6. **FAQ**
+7. **Resources & Next Steps** - Cluster links, practice schedule
+
+### Introduction Hook Templates
+
+**Problem-First (Default for How-To):**
+```
+You're [specific scenario]. [Common frustration or mistake].
+[Short punchy consequence].
+
+Here's the thing: [reframe or solution preview].
+```
+
+**Statistic Hook (Good for Summary Articles):**
+```
+[Specific statistic]. [What most players do wrong].
+[What this article delivers].
+```
+
+**Scenario Hook (Good for Strategy Content):**
+```
+Picture this: [vivid game scenario].
+[The choice/problem]. [Why it matters].
+```
 
 ---
 

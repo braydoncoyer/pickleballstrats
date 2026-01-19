@@ -74,6 +74,7 @@ export const contentPillar = defineType({
               name: "topic",
               title: "Topic",
               type: "string",
+              description: "The topic idea (used to generate title)",
             },
             {
               name: "articleType",
@@ -93,6 +94,18 @@ export const contentPillar = defineType({
               type: "string",
             },
             {
+              name: "generatedTitle",
+              title: "Generated Title",
+              type: "string",
+              description: "SEO-optimized title generated from topic (editable)",
+            },
+            {
+              name: "titleGeneratedAt",
+              title: "Title Generated At",
+              type: "datetime",
+              readOnly: true,
+            },
+            {
               name: "priority",
               title: "Priority",
               type: "number",
@@ -105,6 +118,7 @@ export const contentPillar = defineType({
               options: {
                 list: [
                   { title: "Queued", value: "queued" },
+                  { title: "Titled", value: "titled" },
                   { title: "In Progress", value: "in-progress" },
                   { title: "Published", value: "published" },
                   { title: "Skipped", value: "skipped" },
@@ -118,9 +132,30 @@ export const contentPillar = defineType({
               type: "date",
             },
           ],
+          preview: {
+            select: {
+              topic: "topic",
+              generatedTitle: "generatedTitle",
+              status: "status",
+            },
+            prepare(selection) {
+              const { topic, generatedTitle, status } = selection;
+              const statusEmoji = {
+                queued: "⏳",
+                titled: "📝",
+                "in-progress": "🔄",
+                published: "✅",
+                skipped: "⏭️",
+              }[status] || "❓";
+              return {
+                title: generatedTitle || topic,
+                subtitle: `${statusEmoji} ${status}${generatedTitle ? "" : " (no title yet)"}`,
+              };
+            },
+          },
         },
       ],
-      description: "Queue of topics to write for this pillar",
+      description: "Queue of topics to write for this pillar. Run /blog generate-titles to create titles, then /blog generate-articles to create content.",
     }),
     defineField({
       name: "active",

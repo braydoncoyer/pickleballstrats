@@ -1,56 +1,49 @@
 ---
-allowed-tools: Read, Write, Bash, WebFetch
-description: Generate daily blog articles using AI pipeline
+allowed-tools: Bash
+description: Generate blog articles (titles + content)
 model: sonnet
 ---
 
-# Daily Blog Generation
+# Generate Articles
 
-Generate 10 SEO-optimized articles following the content pillar strategy.
+Generate blog articles from the topic queue. This runs both phases automatically:
+1. Generate SEO-optimized titles for queued topics
+2. Generate full article content for those titles
 
-## Process
+## Instructions
 
-1. **Load Configuration**
-   - Read content pillars from Sanity CMS
-   - Load active tone profile
-   - Check today's scheduled topics from topic queue
+When the user runs `/blog generate [count]`, execute:
 
-2. **Plan Today's Content**
-   - Select 8 how-to topics from queued items
-   - Select 1 pillar topic
-   - Select 1 comparison topic
-   - Validate all topics pass safety check
+```bash
+npx tsx scripts/generate-titles.ts [count] && npx tsx scripts/generate-articles.ts [count]
+```
 
-3. **For Each Article (10 total)**
-   - Run safety check on topic (reject health/war/crime topics)
-   - Generate detailed outline with target keywords
-   - Write 2000+ word article matching tone profile
-   - Source featured image (Unsplash first, DALL-E fallback)
-   - Review with quality agent (PASS/FAIL loop)
-   - Polish for SEO optimization
+**Default count is 3 if not specified.**
 
-4. **Publish to Sanity**
-   - Create article documents in Sanity CMS
-   - Set appropriate publish dates (spread throughout day)
-   - Mark topics as "published" in queue
-   - Trigger Vercel rebuild webhook
+### Examples
 
-5. **Generate Report**
-   - Articles generated (count and titles)
-   - Total word count
-   - Estimated AI cost breakdown
-   - Any failures or skipped topics
-   - Review scores for each article
+- `/blog generate` → Generate 3 articles
+- `/blog generate 5` → Generate 5 articles
+- `/blog generate 10` → Generate 10 articles
 
-## Cost Budget
+## What Happens
 
-Target: ~$0.25 per article standard, ~$0.13 with batch API
-Daily budget: ~$2.50 (10 articles)
-Monthly budget: ~$75
+**Phase 1 - Title Generation (Haiku - fast/cheap):**
+- Fetches `queued` topics from content pillars
+- Generates SEO-optimized titles
+- Checks for duplicates
+- Status: `queued` → `titled`
 
-## Error Handling
+**Phase 2 - Content Generation (Sonnet - high quality):**
+- Uses the titles from Phase 1
+- Generates full article with images
+- Adds internal links
+- Saves to Sanity as draft
+- Status: `titled` → `published`
 
-- If topic fails safety check: skip and log
-- If review fails after 2 rewrites: flag for human review
-- If image sourcing fails: publish without image, flag for manual addition
-- If Sanity publish fails: save locally and retry
+## After Running
+
+Report to the user:
+- How many articles were generated
+- Any errors or skipped topics
+- Remind them to review drafts in Sanity Studio

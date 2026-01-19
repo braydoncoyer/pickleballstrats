@@ -1,17 +1,35 @@
 /**
- * Generate Articles Script
+ * Generate Articles Script (Phase 2)
  *
- * Generates articles using the AI pipeline and saves them to Sanity CMS.
- * Includes internal linking and image generation.
+ * Generates article CONTENT for topics that already have titles.
+ * This is Phase 2 of the two-phase article generation workflow:
+ *
+ * Phase 1: generate-titles.ts
+ *   - Generates titles for queued topics
+ *   - Status: queued → titled
+ *   - Uses Haiku (fast/cheap)
+ *
+ * Phase 2: generate-articles.ts (this script)
+ *   - Generates content for titled topics
+ *   - Uses the pre-generated title (no regeneration)
+ *   - Status: titled → published
+ *   - Uses Sonnet for high-quality content
  *
  * Usage: npx tsx scripts/generate-articles.ts [count]
  * Example: npx tsx scripts/generate-articles.ts 3
+ *
+ * Prerequisites: Run generate-titles.ts first to create titles for queued topics.
  */
 
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@sanity/client";
 import type { ToneProfile } from "../lib/ai/tone-training";
+import {
+  ARTICLE_STRUCTURE_TEMPLATES,
+  HOOK_TEMPLATES,
+  buildHumanizationInstructions,
+} from "../lib/ai/tone-training";
 import { addInternalLinks, getExistingArticles, removePlaceholders } from "../lib/generation/internal-linker";
 import { findImageForArticle, isImageSourceAvailable, type BlogImage } from "../lib/images/image-curator";
 
@@ -28,7 +46,7 @@ const sanityClient = createClient({
   useCdn: false,
 });
 
-// Default tone profile for pickleball content
+// Default tone profile for pickleball content with humanization rules
 const defaultToneProfile: ToneProfile = {
   name: "Pickleball Strategy Expert",
   voiceCharacteristics: {
@@ -39,6 +57,7 @@ const defaultToneProfile: ToneProfile = {
     sentenceVariety: "varied",
   },
   samplePhrases: [
+    // Original phrases
     "Let's break this down",
     "Here's what separates 3.5 players from 4.0+",
     "The key is",
@@ -46,31 +65,64 @@ const defaultToneProfile: ToneProfile = {
     "Once you master this",
     "Think of it like",
     "Pro tip:",
+    // New humanization phrases from voice analysis
+    "at its core",
+    "Whether you're [X] or [Y]",
+    "we call this",
+    "one of the hardest parts",
+    "here's the thing",
+    "I learned a lot",
+    "probably one of the hardest parts",
   ],
   transitionPhrases: [
     "Now that you understand",
     "Building on that foundation",
     "Here's where it gets interesting",
-    "Let's dive deeper into",
     "With that in mind",
   ],
   introPatterns: [
-    "Start with a relatable problem or scenario",
-    "Hook with a surprising statistic or insight",
+    "Problem-first hook: Start with a relatable scenario the reader faces",
+    "Hook with a surprising, specific statistic (67%, not 70%)",
     "Address the reader directly about their goals",
   ],
   conclusionPatterns: [
-    "Summarize key actionable takeaways",
-    "Encourage practice and improvement",
-    "Remind reader of the transformation possible",
+    "Summarize key actionable takeaways in bullets",
+    "Encourage practice with specific time commitment",
+    "End with personal insight: 'In my experience...'",
   ],
   avoidPhrases: [
+    // Original avoid phrases
     "In conclusion",
     "As we all know",
     "It goes without saying",
     "At the end of the day",
     "Game changer",
     "Take your game to the next level",
+    // New AI-phrase blacklist
+    "In this article, we will explore",
+    "Let's delve into",
+    "It's worth noting that",
+    "As mentioned earlier",
+    "comprehensive guide",
+    "robust solution",
+    "leverage",
+    "utilize",
+    "facilitate",
+    "cutting-edge",
+    "game-changing",
+    "ever-evolving",
+    "synergy",
+    "empower",
+    "dive deep",
+    "unpack",
+    "landscape",
+    "paradigm",
+    "holistic",
+    "streamline",
+    "optimize",
+    "innovative",
+    "seamless",
+    "groundbreaking",
   ],
   avoidPatterns: [
     "Starting paragraphs with 'So,'",
@@ -78,6 +130,9 @@ const defaultToneProfile: ToneProfile = {
     "Overly complex sentences",
     "Vague promises without specifics",
     "COLONS IN TITLES - Never use 'Title: Subtitle' format",
+    "Round numbers (use 67% not 70%, 3.7 not 4)",
+    "Generic advice without specific actions",
+    "Long paragraphs (keep to 2-3 sentences)",
   ],
   structuralPreferences: {
     paragraphLength: "short",
@@ -86,6 +141,23 @@ const defaultToneProfile: ToneProfile = {
     useCodeExamples: false,
     includePersonalAnecdotes: true,
   },
+  humanizationRules: {
+    shortPunchySentences: true,
+    useWeForSharedConcepts: true,
+    acknowledgeStruggles: true,
+    specificNumbers: true,
+    personalInsightRequired: true,
+    sentencesBeforePunch: 2,
+    intentionalFragments: [
+      "Worth the practice.",
+      "Every time.",
+      "No exceptions.",
+      "Simple as that.",
+      "That's it.",
+      "Game over.",
+      "Trust me on this.",
+    ],
+  },
   systemPromptPrefix: `You are an expert pickleball coach and content writer creating educational content for competitive players (3.5-5.0 skill level).
 
 VOICE CHARACTERISTICS:
@@ -93,36 +165,65 @@ VOICE CHARACTERISTICS:
 - Technical Level: intermediate (assume reader knows basics)
 - Perspective: second-person (address reader as "you")
 - Personality: encouraging, practical, passionate about pickleball
+- Sentence rhythm: Mix short punchy ("I learned a lot.") with longer explanatory
 
 SAMPLE PHRASES TO USE:
 - "Let's break this down"
 - "Here's what separates 3.5 players from 4.0+"
 - "This is where most players go wrong"
-- "Once you master this"
-- "Pro tip:"
+- "at its core"
+- "here's the thing"
+- "we call this"
+- "one of the hardest parts"
+- "Whether you're a 3.5 looking to level up or a 4.0 refining your game"
 
-PHRASES TO AVOID:
-- "In conclusion"
-- "Game changer"
-- "Take your game to the next level"
-- Generic fluff without actionable advice
+PHRASES TO NEVER USE (AI tells):
+- "In this article, we will explore" - just start with the hook
+- "Let's delve into" - use "Let's look at" or just explain
+- "It's worth noting that" - just state the fact
+- "comprehensive guide" - use "guide" or "complete guide"
+- "robust solution" - use "solid approach"
+- "leverage" - use "use"
+- "utilize" - use "use"
+- "cutting-edge" - use "latest" or "new"
+- "game-changing" - describe the specific impact
+- "ever-evolving" - say what changed specifically
+- "synergy" - describe the actual benefit
+- "empower" - use "help" or "enable"
 
-TITLE RULES (CRITICAL - MUST FOLLOW):
-- NEVER use colons in titles
-- ❌ WRONG: "10 Essential Drills: Elevate Your Game"
-- ❌ WRONG: "Pickleball Strategy: The Ultimate Guide"
+TITLE RULES (⛔ CRITICAL - ZERO TOLERANCE ⛔):
+- ABSOLUTELY NO COLONS (:) IN TITLES - THIS WILL CAUSE THE ARTICLE TO BE REJECTED
+- Never use "Title: Subtitle" format for any reason
+- ❌ WRONG: "10 Essential Drills: Elevate Your Game" (HAS COLON - REJECTED)
+- ❌ WRONG: "Power vs Control: How to Choose" (HAS COLON - REJECTED)
 - ✅ RIGHT: "10 Essential Pickleball Drills for 4.0 Players"
-- ✅ RIGHT: "The Complete Guide to Pickleball Stacking Strategy"
-- ✅ RIGHT: "How to Master the Third Shot Drop"
+- ✅ RIGHT: "How to Choose Between Power and Control Paddles"
+
+HUMANIZATION RULES (CRITICAL - THIS MAKES CONTENT SOUND HUMAN):
+1. Include 1-2 short punchy sentences per section (under 8 words)
+   - Example flow: "Medium sentence here. Another medium one. Short punch."
+2. Use "we" when explaining concepts the reader will apply
+3. Acknowledge common struggles: "This is tricky at first" or "one of the harder skills"
+4. Use SPECIFIC numbers: 67% not 70%, 3.7 not 4, 2.3 seconds not 2 seconds
+5. Include at least one personal insight per article: "In my experience..." or "What I've found..."
+6. Use intentional fragments for emphasis: "Worth the practice." "Every time."
 
 STRUCTURAL PREFERENCES:
-- Short paragraphs (2-3 sentences)
+- Short paragraphs (2-3 sentences max, then line break)
 - Frequent subheadings for scannability
 - Use bullet lists for steps and key points
 - Include "Common Mistakes" sections
 - End with FAQ section
 
-CRITICAL: Write content that competitive pickleball players will find genuinely valuable. Every section should include specific, actionable advice.`,
+SPECIFIC DETAIL REQUIREMENTS:
+- ❌ "Move quickly to the ball"
+- ✅ "Take 2-3 shuffle steps, keeping your paddle at chest height"
+- ❌ "Practice regularly"
+- ✅ "Spend 15 minutes before each session on this drill"
+- ❌ "Get in position early"
+- ✅ "Split step 0.5 seconds before your opponent contacts the ball"
+
+CRITICAL: Write content that competitive pickleball players will find genuinely valuable. Every section should include specific, actionable advice. Sound like a real person, not an AI.`,
 };
 
 // ============================================
@@ -134,8 +235,9 @@ interface QueuedTopic {
   topic: string;
   articleType: "how-to" | "summary" | "comparison";
   targetKeyword: string;
+  generatedTitle: string; // Pre-generated title from generate-titles.ts
   priority: number;
-  status: "queued" | "in-progress" | "published" | "skipped";
+  status: "queued" | "titled" | "in-progress" | "published" | "skipped";
   pillarId: string;
   pillarSlug: string;
 }
@@ -149,9 +251,10 @@ const WORD_TARGETS: Record<string, { min: number; max: number; sections: string 
 };
 
 /**
- * Fetch queued topics from all content pillars, ordered by priority
+ * Fetch titled topics from all content pillars, ordered by priority
+ * Only returns topics that have been through the title generation phase (status === "titled")
  */
-async function getQueuedTopics(limit: number): Promise<QueuedTopic[]> {
+async function getTitledTopics(limit: number): Promise<QueuedTopic[]> {
   const query = `*[_type == "contentPillar" && active == true] {
     _id,
     "slug": slug.current,
@@ -160,6 +263,7 @@ async function getQueuedTopics(limit: number): Promise<QueuedTopic[]> {
       topic,
       articleType,
       targetKeyword,
+      generatedTitle,
       priority,
       status
     }
@@ -167,14 +271,15 @@ async function getQueuedTopics(limit: number): Promise<QueuedTopic[]> {
 
   const pillars = await sanityClient.fetch(query);
 
-  // Flatten and filter queued topics
+  // Flatten and filter titled topics (ready for content generation)
   const allTopics: QueuedTopic[] = [];
 
   for (const pillar of pillars) {
     if (!pillar.topicQueue) continue;
 
     for (const topic of pillar.topicQueue) {
-      if (topic.status === "queued") {
+      // Only process topics that have been titled (Phase 1 complete)
+      if (topic.status === "titled" && topic.generatedTitle) {
         allTopics.push({
           ...topic,
           pillarId: pillar._id,
@@ -196,7 +301,7 @@ async function getQueuedTopics(limit: number): Promise<QueuedTopic[]> {
 async function updateTopicStatus(
   pillarId: string,
   topicKey: string,
-  newStatus: "queued" | "in-progress" | "published" | "skipped"
+  newStatus: "queued" | "titled" | "in-progress" | "published" | "skipped"
 ): Promise<void> {
   await sanityClient
     .patch(pillarId)
@@ -206,13 +311,6 @@ async function updateTopicStatus(
     .commit();
 }
 
-/**
- * Check if an article with this keyword already exists
- */
-async function checkExistingArticle(targetKeyword: string): Promise<boolean> {
-  const query = `count(*[_type == "article" && $keyword in targetKeywords]) > 0`;
-  return sanityClient.fetch(query, { keyword: targetKeyword });
-}
 
 interface ArticleImage {
   url: string;
@@ -238,31 +336,30 @@ interface GeneratedArticle {
 async function generateOutline(
   topic: string,
   articleType: string,
-  targetKeyword: string
-): Promise<{ title: string; description: string; sections: Array<{ heading: string; level: number; keyPoints: string[] }>; faqQuestions: string[] }> {
+  targetKeyword: string,
+  generatedTitle: string // Pre-generated title from Phase 1
+): Promise<{ title: string; description: string; hookType: string; sections: Array<{ heading: string; level: number; keyPoints: string[]; isFeaturedSnippetTarget?: boolean }>; faqQuestions: string[] }> {
   console.log("   📋 Generating outline...");
 
   const wordTarget = WORD_TARGETS[articleType] || WORD_TARGETS["how-to"];
-  const isSummary = articleType === "summary";
+  const structureTemplate = ARTICLE_STRUCTURE_TEMPLATES[articleType];
+  const hookTemplate = HOOK_TEMPLATES[structureTemplate?.hookType || "problem-first"];
 
-  // Build article-type-specific instructions
+  // Build article-type-specific instructions using templates
   let typeInstructions = "";
-  if (isSummary) {
+  if (structureTemplate) {
     typeInstructions = `
-SUMMARY ARTICLE REQUIREMENTS:
-- This is a roundup/summary article that covers multiple related techniques or concepts
-- Structure should aggregate and compare different approaches
-- Include sections for each major sub-topic within the theme
-- Provide overview comparisons and when to use each approach
-- Link to individual how-to articles for deeper dives`;
-  } else if (articleType === "how-to") {
-    typeInstructions = `
-HOW-TO ARTICLE REQUIREMENTS:
-- This is a focused, actionable tutorial on a specific technique
-- Keep it concise and practical - no fluff
-- Get to the point quickly
-- Include step-by-step instructions where applicable
-- Focus on one specific skill or concept`;
+ARTICLE STRUCTURE TO FOLLOW:
+${structureTemplate.structure}
+
+HOOK TYPE: ${structureTemplate.hookType}
+Hook Template:
+${hookTemplate.template}
+
+Example Hook:
+${hookTemplate.example}
+
+${structureTemplate.featuredSnippetTarget ? `FEATURED SNIPPET TARGET: ${structureTemplate.featuredSnippetTarget}` : ""}`;
   }
 
   const response = await anthropic.messages.create({
@@ -275,6 +372,9 @@ HOW-TO ARTICLE REQUIREMENTS:
         role: "user",
         content: `Create a detailed outline for a ${articleType} article.
 
+TITLE (ALREADY FINALIZED - USE EXACTLY AS PROVIDED):
+"${generatedTitle}"
+
 TOPIC: ${topic}
 TARGET KEYWORD: ${targetKeyword}
 WORD TARGET: ${wordTarget.min}-${wordTarget.max} words
@@ -282,30 +382,25 @@ ${typeInstructions}
 
 Return JSON only (no markdown code blocks):
 {
-  "title": "SEO-optimized title including keyword",
   "description": "Meta description under 155 characters",
+  "hookType": "${structureTemplate?.hookType || 'problem-first'}",
   "sections": [
     {
       "heading": "Section heading",
       "level": 2,
-      "keyPoints": ["point 1", "point 2", "point 3"]
+      "keyPoints": ["point 1", "point 2", "point 3"],
+      "isFeaturedSnippetTarget": false
     }
   ],
   "faqQuestions": ["Question 1?", "Question 2?", "Question 3?"]
 }
 
-TITLE REQUIREMENTS (CRITICAL):
-- NEVER use colons in the title - no "Title: Subtitle" format
-- ❌ WRONG: "Pickleball Stacking: The Ultimate Guide"
-- ✅ RIGHT: "The Complete Guide to Pickleball Stacking Strategy"
-- Title must include the target keyword naturally
-- Keep under 60 characters if possible
-
-OTHER REQUIREMENTS:
+REQUIREMENTS:
 - Description must be compelling and under 155 characters (no colons)
 - Include ${wordTarget.sections} main sections (H2)
 - Each section should have 2-4 key points
-- FAQ should address 3-5 real user questions`,
+- FAQ should address 3-5 real user questions
+- Mark one section as isFeaturedSnippetTarget: true (the definition section)`,
       },
     ],
   });
@@ -320,38 +415,66 @@ OTHER REQUIREMENTS:
     jsonStr = jsonStr.replace(/```json?\n?/g, "").replace(/```$/g, "").trim();
   }
 
-  return JSON.parse(jsonStr);
+  const outline = JSON.parse(jsonStr);
+
+  // Use the pre-generated title (don't let AI override it)
+  return {
+    title: generatedTitle,
+    description: outline.description,
+    hookType: outline.hookType,
+    sections: outline.sections,
+    faqQuestions: outline.faqQuestions,
+  };
 }
 
 async function generateDraft(
-  outline: { title: string; description: string; sections: Array<{ heading: string; level: number; keyPoints: string[] }>; faqQuestions: string[] },
+  outline: { title: string; description: string; hookType?: string; sections: Array<{ heading: string; level: number; keyPoints: string[]; isFeaturedSnippetTarget?: boolean }>; faqQuestions: string[] },
   articleType: string,
   targetKeyword: string
 ): Promise<string> {
   console.log("   ✍️  Generating full article...");
 
   const wordTarget = WORD_TARGETS[articleType] || WORD_TARGETS["how-to"];
-  const isSummary = articleType === "summary";
-  const isHowTo = articleType === "how-to";
+  const structureTemplate = ARTICLE_STRUCTURE_TEMPLATES[articleType];
+  const hookTemplate = HOOK_TEMPLATES[outline.hookType || structureTemplate?.hookType || "problem-first"];
+  const humanizationInstructions = buildHumanizationInstructions(defaultToneProfile.humanizationRules);
 
   // Build article-type-specific requirements
   let typeRequirements = "";
-  if (isSummary) {
+  if (articleType === "summary") {
     typeRequirements = `
 SUMMARY ARTICLE SPECIFIC REQUIREMENTS:
 - This is a comprehensive roundup covering multiple related techniques
-- Include comparisons between different approaches
+- Include a Quick Comparison Table early in the article
 - Add [INTERNAL: specific technique] placeholders to link to individual how-to articles
 - Provide "when to use" guidance for each technique covered
-- Include a comparison table or summary of key differences`;
-  } else if (isHowTo) {
+- End with "How to Structure Your Practice" and "What to Focus on First" sections`;
+  } else if (articleType === "how-to") {
     typeRequirements = `
 HOW-TO ARTICLE SPECIFIC REQUIREMENTS:
-- Keep it focused and concise - this is a quick, actionable guide
-- Get to the practical steps quickly (no long intros)
-- Every paragraph should provide value
-- Avoid filler content - if a section feels padded, cut it
-- Aim for the lower end of the word count if the topic is simple`;
+- Start with a problem-first hook (no generic intros)
+- Include a "What Is [Technique]?" section (40-60 words) for featured snippets
+- Include "When to Use [Technique]" with 3-4 specific scenarios
+- Step-by-step execution with specific body positions/movements
+- End with Pro Tips section including "In my experience..." personal insight`;
+  } else if (articleType === "comparison") {
+    typeRequirements = `
+COMPARISON ARTICLE SPECIFIC REQUIREMENTS:
+- Don't bury the lead - give quick verdict in intro
+- Include Quick Comparison table early
+- "What Is [Option A/B]?" sections (40-60 words each) for featured snippets
+- Separate Pros/Cons sections for each option
+- "Which Should You Choose?" with decision framework
+- Clear verdict at the end with reasoning`;
+  } else if (articleType === "pillar") {
+    typeRequirements = `
+PILLAR ARTICLE SPECIFIC REQUIREMENTS:
+- Comprehensive guide covering the topic thoroughly
+- Include Table of Contents (will be auto-generated)
+- Multiple [INTERNAL: topic] placeholders to cluster articles
+- "Putting It All Together" section near the end
+- "Advanced Concepts" section for 4.5+ players
+- "Resources & Next Steps" with practice schedule`;
   }
 
   const response = await anthropic.messages.create({
@@ -370,6 +493,12 @@ ${JSON.stringify(outline, null, 2)}
 WORD TARGET: ${wordTarget.min}-${wordTarget.max} words
 TARGET KEYWORD: ${targetKeyword}
 ARTICLE TYPE: ${articleType}
+
+INTRODUCTION HOOK (USE THIS PATTERN):
+Type: ${hookTemplate.type}
+Template: ${hookTemplate.template}
+Example: ${hookTemplate.example}
+
 ${typeRequirements}
 
 REQUIREMENTS:
@@ -382,6 +511,14 @@ REQUIREMENTS:
 7. Use short paragraphs (2-3 sentences max)
 8. Include specific, actionable advice in every section
 9. IMPORTANT: Stay within the ${wordTarget.min}-${wordTarget.max} word target
+
+${humanizationInstructions}
+
+SENTENCE VARIETY (CRITICAL FOR HUMAN VOICE):
+- After 2 medium sentences, add 1 short punch (under 8 words)
+- Example: "Medium sentence here. Another medium one. Short punch."
+- Use fragments intentionally: "Worth the practice." "Every time."
+- Include at least one "In my experience..." or "What I've found..."
 
 IMAGE PLACEHOLDERS:
 Include 2-4 image placeholders throughout the article using this format:
@@ -606,16 +743,57 @@ async function resolveImagePlaceholders(
   return { content: processedContent, imagesAdded };
 }
 
+/**
+ * Sanitize title to remove colons and fix common AI patterns
+ */
+function sanitizeTitle(rawTitle: string): string {
+  let title = rawTitle;
+
+  // If title contains a colon, try to fix it
+  if (title.includes(':')) {
+    console.log(`   ⚠️  Title contains colon, fixing: "${title}"`);
+
+    // Common patterns to fix:
+    // "Topic: Subtitle" -> "Topic - Subtitle" or just use the better part
+    const colonIndex = title.indexOf(':');
+    const beforeColon = title.substring(0, colonIndex).trim();
+    const afterColon = title.substring(colonIndex + 1).trim();
+
+    // If after colon is a subtitle like "A Complete Guide", "How to...", etc.
+    // just use the before part and rephrase
+    if (afterColon.toLowerCase().includes('guide') ||
+        afterColon.toLowerCase().includes('how to') ||
+        afterColon.toLowerCase().includes('tips') ||
+        afterColon.toLowerCase().includes('strategies') ||
+        afterColon.toLowerCase().includes('ultimate') ||
+        afterColon.toLowerCase().includes('complete') ||
+        afterColon.toLowerCase().includes('essential')) {
+      // Combine them naturally
+      title = `${beforeColon} - ${afterColon}`;
+    } else {
+      // Just replace colon with dash
+      title = title.replace(/:/g, ' -');
+    }
+
+    // Clean up any double dashes or spaces
+    title = title.replace(/\s+-\s+-/g, ' -').replace(/\s+/g, ' ').trim();
+
+    console.log(`   ✓ Fixed title: "${title}"`);
+  }
+
+  return title;
+}
+
 async function polishAndExtract(
   draft: string,
   targetKeyword: string,
-  articleType: "how-to" | "summary" | "pillar" | "comparison"
+  articleType: "how-to" | "summary" | "pillar" | "comparison",
+  generatedTitle: string // Pre-generated title from Phase 1
 ): Promise<GeneratedArticle> {
   console.log("   ✨ Extracting metadata...");
 
-  // Extract title from draft (first H1)
-  const titleMatch = draft.match(/^#\s+(.+)$/m);
-  const title = titleMatch ? titleMatch[1].trim() : "Untitled Article";
+  // Use the pre-generated title (already sanitized in generate-titles.ts)
+  const title = generatedTitle;
 
   // Generate slug from title
   const slug = title
@@ -874,18 +1052,20 @@ async function generateArticle(
   topic: string,
   articleType: "how-to" | "summary" | "pillar" | "comparison",
   targetKeyword: string,
+  generatedTitle: string, // Pre-generated title from Phase 1
   pillarSlug: string,
   index: number
 ): Promise<void> {
-  console.log(`\n📝 Article ${index + 1}: "${topic}"`);
+  console.log(`\n📝 Article ${index + 1}: "${generatedTitle}"`);
+  console.log(`   Topic: ${topic}`);
   console.log(`   Keyword: ${targetKeyword}`);
   console.log(`   Type: ${articleType}`);
 
   const startTime = Date.now();
 
   try {
-    // Step 1: Generate outline
-    const outline = await generateOutline(topic, articleType, targetKeyword);
+    // Step 1: Generate outline (using pre-generated title)
+    const outline = await generateOutline(topic, articleType, targetKeyword, generatedTitle);
     console.log(`   ✓ Outline: ${outline.sections.length} sections`);
 
     // Step 2: Generate draft
@@ -897,8 +1077,8 @@ async function generateArticle(
     draft = contentWithImages;
     console.log(`   ✓ Inline images: ${imagesAdded} added`);
 
-    // Step 4: Polish and extract metadata
-    const article = await polishAndExtract(draft, targetKeyword, articleType);
+    // Step 4: Polish and extract metadata (using pre-generated title)
+    const article = await polishAndExtract(draft, targetKeyword, articleType, generatedTitle);
     article.inlineImagesCount = imagesAdded;
     console.log(`   ✓ Polished: ${article.wordCount} words`);
 
@@ -950,39 +1130,30 @@ async function generateArticle(
 async function main() {
   const count = parseInt(process.argv[2] || "3", 10);
 
-  console.log("🚀 Starting Article Generation");
-  console.log(`   Requested: ${count} articles\n`);
+  console.log("🚀 Starting Article Generation (Phase 2)");
+  console.log("═".repeat(60));
+  console.log(`   Requested: ${count} articles`);
+  console.log(`   Processing topics with status: "titled"\n`);
 
-  // Fetch queued topics from Sanity
-  console.log("📋 Fetching queued topics from Sanity...");
-  const queuedTopics = await getQueuedTopics(count);
+  // Fetch titled topics from Sanity (Phase 1 complete)
+  console.log("📋 Fetching titled topics from Sanity...");
+  const titledTopics = await getTitledTopics(count);
 
-  if (queuedTopics.length === 0) {
-    console.log("\n⚠️  No queued topics found!");
-    console.log("   Add topics to content pillar queues in Sanity Studio.");
+  if (titledTopics.length === 0) {
+    console.log("\n⚠️  No titled topics found!");
+    console.log("   Run Phase 1 first: npx tsx scripts/generate-titles.ts");
+    console.log("   Or add topics to content pillar queues in Sanity Studio.");
     return;
   }
 
-  console.log(`   Found ${queuedTopics.length} queued topics\n`);
-  console.log("═".repeat(60));
+  console.log(`   Found ${titledTopics.length} titled topics ready for content\n`);
+  console.log("─".repeat(60));
 
   let successCount = 0;
   let failCount = 0;
-  let skippedCount = 0;
 
-  for (let i = 0; i < queuedTopics.length; i++) {
-    const topic = queuedTopics[i];
-
-    // Check if article with this keyword already exists
-    const exists = await checkExistingArticle(topic.targetKeyword);
-    if (exists) {
-      console.log(`\n⏭️  Skipping "${topic.topic}"`);
-      console.log(`   Keyword "${topic.targetKeyword}" already has an article`);
-      await updateTopicStatus(topic.pillarId, topic._key, "skipped");
-      skippedCount++;
-      console.log("─".repeat(60));
-      continue;
-    }
+  for (let i = 0; i < titledTopics.length; i++) {
+    const topic = titledTopics[i];
 
     // Mark as in-progress
     await updateTopicStatus(topic.pillarId, topic._key, "in-progress");
@@ -992,6 +1163,7 @@ async function main() {
         topic.topic,
         topic.articleType,
         topic.targetKeyword,
+        topic.generatedTitle, // Use the pre-generated title from Phase 1
         topic.pillarSlug,
         i
       );
@@ -1001,8 +1173,8 @@ async function main() {
       successCount++;
     } catch (error) {
       console.error(`\n   ❌ FAILED: ${error}`);
-      // Reset to queued on failure so it can be retried
-      await updateTopicStatus(topic.pillarId, topic._key, "queued");
+      // Reset to titled on failure so it can be retried
+      await updateTopicStatus(topic.pillarId, topic._key, "titled");
       failCount++;
     }
 
@@ -1012,13 +1184,12 @@ async function main() {
   console.log("\n" + "═".repeat(60));
   console.log("\n📊 Generation Summary:");
   console.log(`   ✅ Success: ${successCount}`);
-  console.log(`   ⏭️  Skipped (duplicate keyword): ${skippedCount}`);
   console.log(`   ❌ Failed: ${failCount}`);
-  console.log(`   📝 Total processed: ${queuedTopics.length}`);
+  console.log(`   📝 Total processed: ${titledTopics.length}`);
 
-  // Show remaining queued topics
-  const remaining = await getQueuedTopics(100);
-  console.log(`\n📋 Remaining in queue: ${remaining.length} topics`);
+  // Show remaining titled topics
+  const remaining = await getTitledTopics(100);
+  console.log(`\n📋 Remaining titled topics: ${remaining.length}`);
 
   console.log("\n🎉 Article generation complete!");
   console.log("   View drafts in Sanity Studio or at your blog URL");
