@@ -1,92 +1,74 @@
 ---
-allowed-tools: Read, Bash
-description: Check blog health, recent articles, and stats
+allowed-tools: Bash
+description: Check blog status and queue stats
 model: haiku
 ---
 
-# Blog Status Check
+# Blog Status
 
-Get a comprehensive overview of blog health and recent activity.
+Show the current state of the blog content pipeline.
 
-## Status Report Sections
+## Instructions
 
-### 1. Content Overview
-- Total published articles
-- Articles by type (how-to, pillar, comparison)
-- Articles published this week/month
-- Draft articles pending review
+Run these Sanity queries and format the results for the user:
 
-### 2. Content Pillars
-- Active pillars with article counts
-- Topics queued per pillar
-- Pillars needing attention (low queue)
+### 1. Article Counts
 
-### 3. Recent Articles
-- Last 10 published articles with:
-  - Title
-  - Publish date
-  - Word count
-  - Review score
-  - Article type
+```bash
+npx sanity documents query '{
+  "total": count(*[_type == "article"]),
+  "drafts": count(*[_type == "article" && draft == true]),
+  "published": count(*[_type == "article" && draft == false])
+}' --api-version 2024-01-01 2>/dev/null
+```
 
-### 4. Generation Metrics
-- Articles generated today
-- AI cost today/this month
-- Average cost per article
-- Review pass rate
-- Average review score
+### 2. Queue Status
 
-### 5. System Health
-- Sanity CMS connection status
-- API keys configured (Claude, Unsplash, DALL-E)
-- DALL-E daily budget status
-- Last successful generation run
+```bash
+npx sanity documents query '{
+  "queued": count(*[_type == "contentPillar"].topicQueue[status == "queued"]),
+  "titled": count(*[_type == "contentPillar"].topicQueue[status == "titled"]),
+  "published": count(*[_type == "contentPillar"].topicQueue[status == "published"]),
+  "skipped": count(*[_type == "contentPillar"].topicQueue[status == "skipped"])
+}' --api-version 2024-01-01 2>/dev/null
+```
 
-### 6. SEO Quick Check
-- Articles missing meta descriptions
-- Articles with low word count
-- Orphan articles (no pillar)
-- Recent indexing status (if available)
+### 3. Recent Articles (last 5)
+
+```bash
+npx sanity documents query '*[_type == "article"] | order(publishedAt desc) [0...5] { title, "slug": slug.current, publishedAt, wordCount, articleType }' --api-version 2024-01-01 2>/dev/null
+```
+
+### 4. Pillars Overview
+
+```bash
+npx sanity documents query '*[_type == "contentPillar" && active == true] { title, "queued": count(topicQueue[status == "queued"]), "titled": count(topicQueue[status == "titled"]) }' --api-version 2024-01-01 2>/dev/null
+```
 
 ## Output Format
 
+Present the results like this:
+
 ```
-# Blog Status Report
-Generated: [DATE TIME]
+## Blog Status
 
-## Content Overview
-Published: XXX articles
-- How-To: XX (80%)
-- Pillar: XX (10%)
-- Comparison: XX (10%)
+### Articles
+- Total: X
+- Published: X
+- Drafts: X
 
-This week: X new articles
-This month: XX new articles
-Drafts pending: X
+### Topic Queue
+- Queued (ready for titles): X
+- Titled (ready for content): X
+- Published: X
+- Skipped: X
 
-## Content Pillars
-| Pillar | Articles | Queued | Status |
-|--------|----------|--------|--------|
-| Name   | 15       | 8      | Good   |
+### Content Pillars
+| Pillar | Queued | Titled |
+|--------|--------|--------|
+| Name   | X      | X      |
 
-## Recent Articles
-1. [Title] - 2000 words - Score: 85 - Jan 15
+### Recent Articles
+1. [Title] - [type] - [date]
 2. ...
-
-## Generation Metrics
-Today: X articles ($X.XX)
-This month: XX articles ($XX.XX)
-Avg cost/article: $0.XX
-Pass rate: XX%
-Avg score: XX
-
-## System Health
-✅ Sanity CMS: Connected
-✅ Claude API: Configured
-✅ Unsplash: Configured
-✅ DALL-E: Configured (8/10 remaining today)
-
-## Attention Needed
-- ⚠️ Pillar "React" has only 2 topics queued
-- ⚠️ 3 articles missing meta descriptions
 ```

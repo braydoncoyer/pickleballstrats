@@ -33,50 +33,73 @@ AI-powered automated blog platform targeting **Advanced Pickleball Strategy** fo
 
 ## Article Generation Pipeline
 
+### Two-Phase Workflow
+
+Article generation is split into two phases for better control and duplicate prevention:
+
+```
+Phase 1: generate-titles.ts
+   queued → titled
+   Fast, cheap (Haiku)
+   Review titles before generating content
+
+Phase 2: generate-articles.ts
+   titled → published
+   High-quality content (Sonnet)
+   Uses pre-generated titles
+```
+
 ### Quick Start
 
 ```bash
-# Generate articles from the queue (specify count, default is 3)
-npx tsx scripts/generate-articles.ts [count]
+# PHASE 1: Generate titles for queued topics (default: 50)
+npx tsx scripts/generate-titles.ts [count]
 
-# Examples:
-npx tsx scripts/generate-articles.ts 1    # Generate 1 article
-npx tsx scripts/generate-articles.ts 5    # Generate 5 articles
-npx tsx scripts/generate-articles.ts 10   # Generate 10 articles
+# Review and edit titles in Sanity Studio...
+
+# PHASE 2: Generate content for titled topics (default: 3)
+npx tsx scripts/generate-articles.ts [count]
 ```
 
-### How It Works
+### Why Two Phases?
 
-The script pulls topics from the **Sanity topic queue** (not a hardcoded list):
+1. **Catch duplicates early** - Review titles before spending time/money on content
+2. **Editorial control** - Edit titles before content is generated
+3. **Cost efficiency** - Haiku for titles (~$0.003), Sonnet for content (~$0.15)
+4. **Batch processing** - Generate all titles at once, then content in batches
 
-1. Fetches `queued` topics from all content pillars, ordered by priority
-2. Checks if keyword already has an article (skips duplicates)
-3. Marks topic as `in-progress` while generating
-4. On success: marks as `published`
-5. On failure: resets to `queued` for retry
+### Phase 1: Title Generation
 
-### Pipeline Steps
+```bash
+npx tsx scripts/generate-titles.ts 10    # Generate 10 titles
+```
 
-Each article goes through these automated steps:
+- Fetches `queued` topics from all content pillars
+- Generates SEO-optimized titles using Claude Haiku
+- Checks for duplicate titles (exact and similar)
+- Updates status: `queued` → `titled`
+- Stores title in `generatedTitle` field (editable in Sanity)
 
-1. **Generate Outline** (Haiku) - Creates H2/H3 structure, FAQ questions
-2. **Generate Draft** (Sonnet) - Writes 1500-2000 word article
-3. **Extract Metadata** (Haiku) - Title, description, tags, keywords
-4. **Process Internal Links** - Resolves `[INTERNAL: topic]` placeholders
-5. **Find/Generate Image** - Searches Unsplash, generates SEO alt text
-6. **Save to Sanity** - Creates draft article in CMS
-7. **Update Queue** - Marks topic as `published`
+### Phase 2: Content Generation
 
-### Topic Queue Management
+```bash
+npx tsx scripts/generate-articles.ts 5   # Generate 5 articles
+```
 
-Topics are managed in Sanity under each **Content Pillar**:
+- Fetches `titled` topics (Phase 1 must be complete)
+- Uses the pre-generated title (no regeneration)
+- Generates outline, draft, images, internal links
+- Updates status: `titled` → `published`
+
+### Topic Queue Status
 
 | Status | Meaning |
 |--------|---------|
-| `queued` | Ready to be written |
+| `queued` | Ready for title generation (Phase 1) |
+| `titled` | Has title, ready for content (Phase 2) |
 | `in-progress` | Currently being generated |
 | `published` | Successfully completed |
-| `skipped` | Duplicate keyword detected |
+| `skipped` | Duplicate detected |
 
 **To add new topics:** Edit the `topicQueue` array in Sanity Studio under Content Pillars.
 
@@ -88,6 +111,19 @@ Topics are managed in Sanity under each **Content Pillar**:
 | `summary` | 2000-3000 | Roundup articles that aggregate multiple how-to topics |
 | `comparison` | 1500-2000 | X vs Y comparisons |
 | `pillar` | 3000-5000 | Comprehensive guides (cornerstone content) |
+
+### Pipeline Steps (Phase 2)
+
+Each article goes through these automated steps:
+
+1. **Generate Outline** (Haiku) - Uses pre-generated title, creates H2/H3 structure
+2. **Generate Draft** (Sonnet) - Writes full article matching word target
+3. **Resolve Images** - Searches Unsplash for inline image placeholders
+4. **Extract Metadata** (Haiku) - Description, tags, keywords
+5. **Process Internal Links** - Resolves `[INTERNAL: topic]` placeholders
+6. **Find Featured Image** - Searches Unsplash, generates SEO alt text
+7. **Save to Sanity** - Creates draft article in CMS
+8. **Update Queue** - Marks topic as `published`
 
 ---
 
@@ -197,11 +233,17 @@ npx sanity documents delete [id1] [id2] --api-version 2024-01-01
 # Query content pillars
 npx sanity documents query '*[_type == "contentPillar"]{ _id, title, "slug": slug.current }' --api-version 2024-01-01
 
+# Count queued topics (ready for Phase 1)
+npx sanity documents query 'count(*[_type == "contentPillar"].topicQueue[status == "queued"])' --api-version 2024-01-01
+
+# Count titled topics (ready for Phase 2)
+npx sanity documents query 'count(*[_type == "contentPillar"].topicQueue[status == "titled"])' --api-version 2024-01-01
+
+# View titled topics with their generated titles
+npx sanity documents query '*[_type == "contentPillar"]{ title, "titled": topicQueue[status == "titled"]{ topic, generatedTitle } }' --api-version 2024-01-01
+
 # Check topic queue status (non-queued topics)
 npx sanity documents query '*[_type == "contentPillar"]{ title, "completed": topicQueue[status in ["published", "skipped"]]{ topic, status } }' --api-version 2024-01-01
-
-# Count remaining queued topics
-npx sanity documents query 'count(*[_type == "contentPillar"].topicQueue[status == "queued"])' --api-version 2024-01-01
 ```
 
 ---
