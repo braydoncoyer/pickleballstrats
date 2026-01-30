@@ -17,6 +17,7 @@ import {
   PUBLIC_ADSENSE_SLOT_IN_CONTENT,
 } from "astro:env/client";
 import { SITE } from "@/config";
+import { getCanonicalUrl } from "@/utils/canonicalUrl";
 import "@/styles/global.css";
 
 // Check if we should show real ads
@@ -42,7 +43,7 @@ const {
   profile = SITE.profile,
   description = SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
-  canonicalURL = new URL(Astro.url.pathname, Astro.url),
+  canonicalURL = getCanonicalUrl(Astro.url),
   pubDatetime,
   modDatetime,
   scrollSmooth = false,

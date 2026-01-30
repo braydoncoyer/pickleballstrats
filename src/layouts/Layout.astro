@@ -4,6 +4,7 @@ import { ClientRouter } from "astro:transitions";
 import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { PUBLIC_ADSENSE_CLIENT_ID } from "astro:env/client";
 import { SITE } from "@/config";
+import { getCanonicalUrl } from "@/utils/canonicalUrl";
 import VemetricScript from '@vemetric/astro';
 import "@/styles/global.css";
 
@@ -28,7 +29,7 @@ const {
   profile = SITE.profile,
   description = SITE.desc,
   ogImage = SITE.ogImage ? `/${SITE.ogImage}` : "/og.png",
-  canonicalURL = new URL(Astro.url.pathname, Astro.url),
+  canonicalURL = getCanonicalUrl(Astro.url),
   pubDatetime,
   modDatetime,
   scrollSmooth = false,
